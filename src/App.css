@@ -485,6 +485,15 @@ footer span {
   padding: 27px 17px 18px;
   border-right: 1px solid #242630;
   background: #101116;
+  transition: transform .22s ease;
+}
+
+.study-shell:not(.is-sidebar-open) .study-sidebar {
+  transform: translateX(-100%);
+}
+
+.study-sidebar-backdrop {
+  display: none;
 }
 
 .study-brand {
@@ -801,6 +810,11 @@ footer span {
 .study-main {
   min-height: 100vh;
   margin-left: 252px;
+  transition: margin-left .22s ease;
+}
+
+.study-shell:not(.is-sidebar-open) .study-main {
+  margin-left: 0;
 }
 
 .study-topbar {
@@ -811,6 +825,35 @@ footer span {
   padding: 0 42px;
   border-bottom: 1px solid #242630;
   background: #0d0e13b8;
+}
+
+.study-topbar-left {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.study-sidebar-toggle {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid #30313c;
+  border-radius: 10px;
+  color: #b9b4c7;
+  background: #15161d;
+  cursor: pointer;
+  transition: color .16s ease, border-color .16s ease, background-color .16s ease;
+}
+
+.study-sidebar-toggle:hover,
+.study-sidebar-toggle:focus-visible {
+  outline: none;
+  border-color: #554a71;
+  color: #ded8ee;
+  background: #1d1b26;
 }
 
 .study-breadcrumb,
@@ -1643,52 +1686,12 @@ footer span {
   line-height: 1.6;
 }
 
-.study-library-panel {
-  display: flex;
-  min-height: 270px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 28px;
-  text-align: center;
+.study-library-view {
+  max-width: 780px;
 }
 
-.study-library-icon {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border: 1px solid #554871;
-  border-radius: 14px;
-  color: #c0adff;
-  background: #29243a;
-}
-
-.study-library-panel h2 {
-  margin: 16px 0 5px;
-  color: #eceaf3;
-  font: 650 16px/1.4 'Manrope', sans-serif;
-}
-
-.study-library-panel > p {
-  max-width: 400px;
-  margin: 0;
-  color: #9293a2;
-  font-size: 10px;
-  line-height: 1.6;
-}
-
-.study-library-panel > .study-primary-button {
-  margin: 16px 0 10px;
-}
-
-.study-library-panel .study-composer {
+.study-library-composer {
   width: 100%;
-  max-width: 600px;
-}
-
-.study-library-panel .study-composer .file-menu-wrap {
-  text-align: left;
 }
 
 @media (max-width: 1120px) {
@@ -1746,17 +1749,34 @@ footer span {
 
 @media (max-width: 650px) {
   .study-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 15;
-    width: 100%;
-    padding: 12px 15px 10px;
-    border-right: 0;
-    border-bottom: 1px solid #282a33;
+    bottom: 0;
+    z-index: 10;
+    width: min(86vw, 300px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px 15px 18px;
+    border-right: 1px solid #282a33;
+    border-bottom: 0;
+    transform: translateX(-102%);
+  }
+
+  .study-shell.is-sidebar-open .study-sidebar {
+    transform: translateX(0);
+  }
+
+  .study-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: block;
+    border: 0;
+    background: #050609ad;
   }
 
   .study-brand {
-    margin: 0 0 11px 1px;
+    margin: 0 0 28px 1px;
     font-size: 18px;
   }
 
@@ -1765,35 +1785,21 @@ footer span {
     height: 28px;
   }
 
-  .study-new-session,
-  .study-sidebar-note,
-  .study-recent-sidebar,
-  .study-account,
-  .study-nav-label {
-    display: none;
-  }
-
   .study-nav {
-    flex-direction: row;
-    gap: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .study-nav::-webkit-scrollbar {
-    display: none;
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible;
   }
 
   .study-nav-link {
-    flex: 0 0 auto;
-    gap: 6px;
-    padding: 8px 9px;
-    font-size: 10px;
+    gap: 12px;
+    padding: 11px 12px;
+    font-size: 12px;
   }
 
   .study-nav-link svg {
-    width: 15px;
-    height: 15px;
+    width: 17px;
+    height: 17px;
   }
 
   .study-main {

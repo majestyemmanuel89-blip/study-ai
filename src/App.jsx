@@ -98,6 +98,7 @@ function Icon({ name, size = 18 }) {
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     grid: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
     plus: <path d="M12 5v14m-7-7h14" />,
+    sidebar: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></>,
     sparkle: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" /></>,
     target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
   }
@@ -129,6 +130,7 @@ function App() {
   const [googleConfigured, setGoogleConfigured] = useState(false)
   const [content, setContent] = useState(DEFAULT_CONTENT)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 650px)').matches)
   const { chats, error: historyError } = historyState
   const date = new Intl.DateTimeFormat('en', {
     weekday: 'long',
@@ -305,15 +307,20 @@ function App() {
     }
   }
 
+  function navigateTo(view) {
+    setCurrentView(view)
+    if (window.matchMedia('(max-width: 650px)').matches) setSidebarOpen(false)
+  }
+
   function startNewChat() {
-    setCurrentView('overview')
+    navigateTo('overview')
     setActiveChatId(null)
     setChatKey(key => key + 1)
   }
 
   function openChat(chat) {
     setActiveChatId(chat.id)
-    setCurrentView('overview')
+    navigateTo('overview')
   }
 
   const studyMenu = (
@@ -345,16 +352,20 @@ function App() {
     )
   }
 
-  function openFileMenu() {
-    document.querySelector('.composer-attach')?.click()
-  }
-
   return (
-    <div className="study-shell">
-      <aside className="study-sidebar">
+    <div className={`study-shell${sidebarOpen ? ' is-sidebar-open' : ''}`}>
+      {sidebarOpen && (
+        <button
+          className="study-sidebar-backdrop"
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside className="study-sidebar" id="study-navigation">
         <button
           className="study-brand"
-          onClick={() => setCurrentView('overview')}
+          onClick={() => navigateTo('overview')}
           aria-label="StudyAI dashboard"
         >
           <span className="study-brand-mark"><Icon name="sparkle" size={20} /></span>
@@ -374,7 +385,7 @@ function App() {
           {navigation.map((item) => (
             <button
               className={`study-nav-link${item.id === currentView ? ' is-active' : ''}`}
-              onClick={() => setCurrentView(item.id)}
+              onClick={() => navigateTo(item.id)}
               key={item.label}
               aria-current={item.id === currentView ? 'page' : undefined}
             >
@@ -443,7 +454,20 @@ function App() {
 
       <main className="study-main" id="dashboard">
         <header className="study-topbar">
-          <div className="study-breadcrumb"><span>Workspace</span><span>/</span><strong>{currentLabel}</strong></div>
+          <div className="study-topbar-left">
+            <button
+              className="study-sidebar-toggle"
+              type="button"
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              aria-controls="study-navigation"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen(open => !open)}
+              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            >
+              <Icon name="sidebar" size={19} />
+            </button>
+            <div className="study-breadcrumb"><span>Workspace</span><span>/</span><strong>{currentLabel}</strong></div>
+          </div>
           <div className="study-topbar-right">
             <span className="study-date">{date}</span>
             <span className="study-top-avatar" aria-label={`${authState.user.displayName} account`}>
@@ -502,21 +526,12 @@ function App() {
           )}
 
           {currentView === 'library' && (
-            <section className="study-subview">
+            <section className="study-subview study-library-view">
               <div className="study-subview-heading">
                 <span className="study-section-kicker">YOUR STUDY MATERIALS</span>
                 <h1>My library</h1>
-                <p>Add a textbook or notes to study with your AI tutor.</p>
               </div>
-              <section className="study-panel study-library-panel">
-                <span className="study-library-icon"><Icon name="book" size={22} /></span>
-                <h2>Your materials will appear here</h2>
-                <p>Upload PDF, TXT, or Markdown files to get started.</p>
-                <button className="study-primary-button" onClick={openFileMenu}>
-                  Add a document <Icon name="arrow" size={16} />
-                </button>
-                <div className="study-composer">{studyMenu}</div>
-              </section>
+              <div className="study-library-composer study-composer">{studyMenu}</div>
             </section>
           )}
 
