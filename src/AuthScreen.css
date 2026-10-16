@@ -11,7 +11,7 @@
   background:
     radial-gradient(ellipse at 50% 0%, #241d3b 0, transparent 40rem),
     #0d0e13;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .auth-card {
@@ -28,7 +28,7 @@
   align-items: center;
   gap: 10px;
   color: #f2f0f8;
-  font: 800 20px/1 'Manrope', sans-serif;
+  font: 800 20px/1 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -.7px;
 }
 
@@ -55,7 +55,7 @@
 .auth-heading h1 {
   margin: 8px 0 6px;
   color: #f3f0fa;
-  font: 700 27px/1.2 'Manrope', sans-serif;
+  font: 700 27px/1.2 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -.8px;
 }
 
@@ -101,7 +101,7 @@
 
 .auth-google-g {
   color: #c1b1ff;
-  font: 700 15px/1 'Manrope', sans-serif;
+  font: 700 15px/1 'Plus Jakarta Sans', sans-serif;
 }
 
 .auth-google-soon {

@@ -125,6 +125,7 @@ function App() {
   const [chatKey, setChatKey] = useState(0)
   const [historyState, setHistoryState] = useState(loadChatHistory)
   const [activeChatId, setActiveChatId] = useState(null)
+  const [chatStarted, setChatStarted] = useState(false)
   const [authState, setAuthState] = useState({ status: 'loading', user: null, csrfToken: null })
   const [authError, setAuthError] = useState(getAuthErrorFromUrl)
   const [googleConfigured, setGoogleConfigured] = useState(false)
@@ -254,6 +255,7 @@ function App() {
       setHistoryState({ chats: [], error: '' })
       setAuthState({ status: 'anonymous', user: null, csrfToken: null })
       setActiveChatId(null)
+      setChatStarted(false)
       setChatKey(key => key + 1)
       setCurrentView('overview')
     } catch (error) {
@@ -315,11 +317,13 @@ function App() {
   function startNewChat() {
     navigateTo('overview')
     setActiveChatId(null)
+    setChatStarted(false)
     setChatKey(key => key + 1)
   }
 
   function openChat(chat) {
     setActiveChatId(chat.id)
+    setChatStarted(chat.messages.length > 0)
     navigateTo('overview')
   }
 
@@ -329,6 +333,7 @@ function App() {
       documents={[]}
       csrfToken={authState.csrfToken}
       initialMessages={activeChat?.messages || []}
+      onChatStart={() => setChatStarted(true)}
       onMessagesChange={saveConversation}
       onFilesSelected={(files) => {
         console.log('Selected documents:', files)
@@ -484,7 +489,7 @@ function App() {
           )}
           {currentView === 'overview' && (
             <>
-              <div className="study-overview-focus">
+              {!chatStarted && <div className="study-overview-focus">
                 <section className="study-welcome">
                   <div>
                     <p className="study-overline">YOUR PERSONAL STUDY SPACE</p>
@@ -517,7 +522,7 @@ function App() {
                   </button>
                   <div className="study-banner-glow" aria-hidden="true" />
                 </section>
-              </div>
+              </div>}
               <div className="study-bottom-composer">
                 <div className="study-composer">{studyMenu}</div>
                 <p>StudyAI can make mistakes. Check important information.</p>

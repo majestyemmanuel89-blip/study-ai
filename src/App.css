@@ -1,8 +1,8 @@
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   color: #24213a;
   background: #faf9fe;
   font-synthesis: none;
@@ -49,7 +49,7 @@ button {
 }
 
 .logo {
-  font: 800 27px 'Manrope', sans-serif;
+  font: 800 27px 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -1.5px;
   margin: 0 0 35px 7px;
 }
@@ -165,7 +165,7 @@ button {
 }
 
 .welcome h1 {
-  font: 800 clamp(30px, 3.5vw, 45px)/1.2 'Manrope', sans-serif;
+  font: 800 clamp(30px, 3.5vw, 45px)/1.2 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -2px;
   margin: 0;
 }
@@ -272,7 +272,7 @@ button {
 }
 
 .section-heading h2 {
-  font: 700 19px 'Manrope', sans-serif;
+  font: 700 19px 'Plus Jakarta Sans', sans-serif;
   margin: 0;
   letter-spacing: -.5px;
 }
@@ -329,7 +329,7 @@ button {
 }
 
 .feature-card h3 {
-  font: 700 14px 'Manrope', sans-serif;
+  font: 700 14px 'Plus Jakarta Sans', sans-serif;
   margin: 0 0 9px;
 }
 
@@ -466,7 +466,7 @@ footer span {
   background:
     radial-gradient(ellipse at 74% 0%, #211c36 0, transparent 35rem),
     var(--study-bg);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .study-brand {
@@ -504,7 +504,7 @@ footer span {
   width: fit-content;
   margin: 0 0 33px 8px;
   color: var(--study-text);
-  font: 800 21px/1 'Manrope', sans-serif;
+  font: 800 21px/1 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -1px;
   text-decoration: none;
 }
@@ -962,7 +962,7 @@ footer span {
 .study-welcome h1 {
   margin: 0;
   color: #f3f0fa;
-  font: 700 clamp(26px, 3vw, 35px)/1.18 'Manrope', sans-serif;
+  font: 700 clamp(26px, 3vw, 35px)/1.18 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -1.3px;
 }
 
@@ -1058,7 +1058,7 @@ footer span {
 .study-recent-heading h2 {
   margin: 5px 0 0;
   color: #eceaf3;
-  font: 650 15px/1.3 'Manrope', sans-serif;
+  font: 650 15px/1.3 'Plus Jakarta Sans', sans-serif;
 }
 
 .study-recent-count {
@@ -1096,7 +1096,7 @@ footer span {
 .study-empty-chat h3 {
   margin: 0 0 3px;
   color: #e4e1eb;
-  font: 600 11px/1.4 'Manrope', sans-serif;
+  font: 600 11px/1.4 'Plus Jakarta Sans', sans-serif;
 }
 
 .study-empty-chat p {
@@ -1135,7 +1135,7 @@ footer span {
 .study-focus-copy h2 {
   margin: 7px 0 6px;
   color: #f3effb;
-  font: 700 17px/1.3 'Manrope', sans-serif;
+  font: 700 17px/1.3 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -.35px;
 }
 
@@ -1247,7 +1247,7 @@ footer span {
 .study-section-heading h2 {
   margin: 7px 0 4px;
   color: #eceaf3;
-  font: 650 16px/1.35 'Manrope', sans-serif;
+  font: 650 16px/1.35 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -.35px;
 }
 
@@ -1452,7 +1452,7 @@ footer span {
 .study-tool-card h3 {
   margin: 15px 0 6px;
   color: #e7e4ef;
-  font: 650 11px/1.45 'Manrope', sans-serif;
+  font: 650 11px/1.45 'Plus Jakarta Sans', sans-serif;
 }
 
 .study-tool-card p {
@@ -1530,7 +1530,7 @@ footer span {
   max-width: 190px;
   margin: 8px 0;
   color: #eeebf5;
-  font: 650 16px/1.3 'Manrope', sans-serif;
+  font: 650 16px/1.3 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -.4px;
 }
 
@@ -1600,7 +1600,7 @@ footer span {
 .study-tip-card h3 {
   margin: 13px 0 8px;
   color: #e8e5ef;
-  font: 650 12px/1.4 'Manrope', sans-serif;
+  font: 650 12px/1.4 'Plus Jakarta Sans', sans-serif;
 }
 
 .study-tip-card p {
@@ -1676,7 +1676,7 @@ footer span {
 .study-subview-heading h1 {
   margin: 8px 0 6px;
   color: #f3f0fa;
-  font: 700 30px/1.2 'Manrope', sans-serif;
+  font: 700 30px/1.2 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -1px;
 }
 
@@ -2031,7 +2031,7 @@ footer span {
 }
 
 .upload-heading h2 {
-  font: 700 21px 'Manrope', sans-serif;
+  font: 700 21px 'Plus Jakarta Sans', sans-serif;
   margin: 0;
 }
 

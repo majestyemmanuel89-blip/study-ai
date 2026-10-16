@@ -53,6 +53,7 @@ export default function FileActionMenu({
   documents = [],
   csrfToken,
   initialMessages = [],
+  onChatStart,
   onMessagesChange,
   onFilesSelected,
   onSelectDocument,
@@ -137,6 +138,7 @@ export default function FileActionMenu({
     event.preventDefault()
     if (sending || (!question.trim() && selectedFiles.length === 0)) return
 
+    onChatStart?.()
     setSending(true)
     setChatError('')
 
