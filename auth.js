@@ -8,6 +8,7 @@ const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 const AUTH_ATTEMPT_WINDOW_MS = 15 * 60 * 1000
 const AUTH_COOLDOWN_MS = 15 * 1000
 const MAX_AUTH_ATTEMPTS = 10
+const GOOGLE_CALLBACK_PATH = '/api/auth/google/callback'
 const PASSWORD_MIN_LENGTH = 10
 const PASSWORD_MAX_LENGTH = 128
 const ADMIN_PASSWORD_MIN_LENGTH = 5
@@ -55,6 +56,21 @@ function verifyPassword(password, salt, expectedHash) {
 
 function hashToken(token) {
   return createHash('sha256').update(token).digest('hex')
+}
+
+function isValidGoogleRedirectUri(value, requireHttps) {
+  try {
+    const callback = new URL(value)
+    return ['http:', 'https:'].includes(callback.protocol)
+      && callback.pathname === GOOGLE_CALLBACK_PATH
+      && !callback.username
+      && !callback.password
+      && !callback.search
+      && !callback.hash
+      && (!requireHttps || callback.protocol === 'https:')
+  } catch {
+    return false
+  }
 }
 
 function safeUser(user) {
@@ -434,26 +450,38 @@ export function attachAuth(app, store) {
   const loginFailures = new Map()
   const cookieSecure = process.env.NODE_ENV === 'production'
   const oauthStateCookie = 'studyai_google_state'
-  const getGoogleConfig = () => ({
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri: process.env.GOOGLE_REDIRECT_URI,
-  })
+  const getGoogleConfig = () => {
+    let redirectUri = process.env.GOOGLE_REDIRECT_URI
+    if (
+      process.env.RENDER_EXTERNAL_URL
+      && !isValidGoogleRedirectUri(redirectUri, true)
+    ) {
+      try {
+        const publicUrl = new URL(process.env.RENDER_EXTERNAL_URL)
+        if (
+          publicUrl.protocol === 'https:'
+          && !publicUrl.username
+          && !publicUrl.password
+          && !publicUrl.search
+          && !publicUrl.hash
+        ) {
+          redirectUri = new URL(GOOGLE_CALLBACK_PATH, publicUrl).toString()
+        }
+      } catch {
+        redirectUri = process.env.GOOGLE_REDIRECT_URI
+      }
+    }
+
+    return {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri,
+    }
+  }
   const googleConfigured = () => {
     const { clientId, clientSecret, redirectUri } = getGoogleConfig()
     if (!clientId || !clientSecret || !redirectUri) return false
-    try {
-      const callback = new URL(redirectUri)
-      return ['http:', 'https:'].includes(callback.protocol)
-        && callback.pathname === '/api/auth/google/callback'
-        && !callback.username
-        && !callback.password
-        && !callback.search
-        && !callback.hash
-        && (process.env.NODE_ENV !== 'production' || callback.protocol === 'https:')
-    } catch {
-      return false
-    }
+    return isValidGoogleRedirectUri(redirectUri, process.env.NODE_ENV === 'production')
   }
 
   app.use((req, _res, next) => {
