@@ -1,5 +1,5 @@
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import './FileActionMenu.css'
 
@@ -10,6 +10,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const MAX_TEXTBOOK_LENGTH = 60000
+const FOLLOW_UP_SUGGESTIONS = [
+  { label: 'Explain more simply', prompt: 'Explain that in simpler terms.' },
+  { label: 'Give me an example', prompt: 'Give me a practical example of that.' },
+  { label: 'Quiz me on this', prompt: 'Quiz me on this topic.' },
+]
 
 const Icon = ({ name, size = 18 }) => {
   const paths = {
@@ -20,7 +25,10 @@ const Icon = ({ name, size = 18 }) => {
     cloud: <><path d="M20 16.2A4.5 4.5 0 0 0 18 7.5a6 6 0 0 0-11.5 1.8A4 4 0 0 0 7 17h12" /><path d="m12 12-3 3m3-3 3 3m-3-3v8" /></>,
     close: <><path d="m18 6-12 12M6 6l12 12" /></>,
     chevron: <><path d="m9 18 6-6-6-6" /></>,
+    copy: <><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
     file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M8 13h8m-8 4h8" /></>,
+    reply: <><path d="m9 17-5-5 5-5" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></>,
     send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
   }
 
@@ -60,7 +68,15 @@ export default function FileActionMenu({
   const [messages, setMessages] = useState(initialMessages)
   const [sending, setSending] = useState(false)
   const [chatError, setChatError] = useState('')
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState(null)
   const fileInput = useRef(null)
+  const questionInput = useRef(null)
+
+  useEffect(() => {
+    if (copiedMessageIndex === null) return undefined
+    const timeoutId = window.setTimeout(() => setCopiedMessageIndex(null), 1800)
+    return () => window.clearTimeout(timeoutId)
+  }, [copiedMessageIndex])
 
   const filteredDocuments = documents.filter(doc => {
     const name = typeof doc === 'string' ? doc : doc.name
@@ -170,6 +186,38 @@ export default function FileActionMenu({
     } finally {
       setSending(false)
     }
+  }
+
+  async function copyMessage(content, index) {
+    try {
+      await navigator.clipboard.writeText(content)
+      setChatError('')
+      setCopiedMessageIndex(index)
+    } catch {
+      setChatError('Could not copy this message. Check your browser permissions and try again.')
+    }
+  }
+
+  async function shareMessage(content, index) {
+    if (typeof navigator.share !== 'function') {
+      await copyMessage(content, index)
+      return
+    }
+
+    try {
+      await navigator.share({ title: 'StudyAI message', text: content })
+      setChatError('')
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        setChatError('Could not share this message. Please try again.')
+      }
+    }
+  }
+
+  function startFollowUp(prompt) {
+    setQuestion(prompt)
+    setChatError('')
+    questionInput.current?.focus()
   }
 
   function connect(service) {
@@ -370,7 +418,54 @@ export default function FileActionMenu({
                   ))}
                 </div>
               )}
-              <p>{message.content}</p>
+              {message.role === 'assistant' ? (
+                <>
+                  <section className="assistant-output-card" aria-label="Assistant message">
+                    <header className="assistant-output-header">
+                      <span className="assistant-output-label">
+                        <Icon name="file" size={17} />
+                        Message
+                      </span>
+                      <div className="assistant-output-actions">
+                        <button
+                          className="assistant-output-action"
+                          type="button"
+                          onClick={() => copyMessage(message.content, index)}
+                          aria-label={copiedMessageIndex === index ? 'Copied to clipboard' : 'Copy message'}
+                          title={copiedMessageIndex === index ? 'Copied' : 'Copy'}
+                        >
+                          <Icon name={copiedMessageIndex === index ? 'check' : 'copy'} size={17} />
+                        </button>
+                        <button
+                          className="assistant-output-action"
+                          type="button"
+                          onClick={() => shareMessage(message.content, index)}
+                          aria-label="Share message"
+                          title="Share"
+                        >
+                          <Icon name="send" size={17} />
+                        </button>
+                      </div>
+                    </header>
+                    <div className="assistant-output-content">{message.content}</div>
+                  </section>
+                  <div className="assistant-follow-ups" role="group" aria-label="Suggested follow-up questions">
+                    {FOLLOW_UP_SUGGESTIONS.map(suggestion => (
+                      <button
+                        className="assistant-follow-up"
+                        key={suggestion.label}
+                        type="button"
+                        onClick={() => startFollowUp(suggestion.prompt)}
+                      >
+                        <Icon name="reply" size={16} />
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p>{message.content}</p>
+              )}
             </article>
           ))}
         </div>
@@ -413,6 +508,7 @@ export default function FileActionMenu({
             <Icon name={open ? 'close' : 'paperclip'} size={19} />
           </button>
           <input
+            ref={questionInput}
             className="composer-input"
             value={question}
             onChange={event => setQuestion(event.target.value)}
