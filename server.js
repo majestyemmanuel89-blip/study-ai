@@ -2,10 +2,13 @@
 import 'dotenv/config'
 import express from 'express'
 import Groq from 'groq-sdk'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createAuthStore, attachAuth } from './auth.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
+const distPath = resolve(dirname(fileURLToPath(import.meta.url)), 'dist')
 const authStore = createAuthStore()
 
 app.set('trust proxy', 1)
@@ -220,6 +223,17 @@ Generate exactly the requested number of questions. Each question must have exac
       error: 'The quiz could not be generated right now. Check that the backend is running and try again.',
     })
   }
+})
+
+app.use(express.static(distPath))
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next()
+  }
+
+  res.sendFile(resolve(distPath, 'index.html'), error => {
+    if (error) next(error)
+  })
 })
 
 app.listen(PORT, () => {

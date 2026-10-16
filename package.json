@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node server.js",
+    "start": "node server.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
