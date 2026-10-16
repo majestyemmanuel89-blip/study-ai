@@ -461,6 +461,7 @@ footer span {
   --study-purple: #a992ff;
   --study-purple-strong: #8f72f5;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--study-text);
   background:
     radial-gradient(ellipse at 74% 0%, #211c36 0, transparent 35rem),
@@ -1756,7 +1757,10 @@ footer span {
     width: min(86vw, 300px);
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 20px 15px 18px;
+    padding: calc(20px + env(safe-area-inset-top))
+      15px
+      calc(18px + env(safe-area-inset-bottom))
+      calc(15px + env(safe-area-inset-left));
     border-right: 1px solid #282a33;
     border-bottom: 0;
     transform: translateX(-102%);
@@ -1807,8 +1811,11 @@ footer span {
   }
 
   .study-topbar {
-    min-height: 52px;
-    padding: 0 17px;
+    min-height: calc(52px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top)
+      calc(17px + env(safe-area-inset-right))
+      0
+      calc(17px + env(safe-area-inset-left));
   }
 
   .study-breadcrumb {
@@ -1829,12 +1836,16 @@ footer span {
   }
 
   .study-content {
-    padding: 20px 16px 0;
+    padding: 20px
+      calc(16px + env(safe-area-inset-right))
+      calc(12px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
   }
 
   .study-content.is-overview {
     min-height: calc(100vh - 52px);
-    padding-bottom: 12px;
+    min-height: calc(100dvh - 52px - env(safe-area-inset-top));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 
   .study-overview-focus {
@@ -1933,6 +1944,12 @@ footer span {
     display: none;
   }
 
+  .study-composer .composer-attach,
+  .study-composer .composer-send {
+    width: 40px;
+    height: 40px;
+  }
+
   .study-prompt-hints {
     align-items: flex-start;
   }
@@ -1983,6 +2000,17 @@ footer span {
 
   .feature-card {
     min-height: auto;
+  }
+}
+
+@media (max-width: 650px) {
+  .study-shell .study-composer input,
+  .study-shell .document-search input,
+  .study-shell .study-quiz-topic input,
+  .study-shell .study-quiz-settings select,
+  .study-shell .admin-content-form input,
+  .auth-shell .auth-form input {
+    font-size: 16px;
   }
 }
 

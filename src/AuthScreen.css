@@ -1,8 +1,12 @@
 .auth-shell {
   display: grid;
   min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
-  padding: 28px 18px;
+  padding: calc(28px + env(safe-area-inset-top))
+    calc(18px + env(safe-area-inset-right))
+    calc(28px + env(safe-area-inset-bottom))
+    calc(18px + env(safe-area-inset-left));
   color: #f2f0f8;
   background:
     radial-gradient(ellipse at 50% 0%, #241d3b 0, transparent 40rem),
