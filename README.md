@@ -6,13 +6,13 @@ StudyAI is a React/Vite study workspace backed by an Express API and SQLite.
 
 - Node.js 22.13 or newer (the backend uses Node's built-in SQLite module)
 - npm
-- A Groq API key for tutor and quiz generation
+- A Gemini API key for tutor and quiz generation
 
 ## Local setup
 
 1. Install dependencies with `npm install`.
 2. Copy `.env.example` to `.env`.
-3. Set `GROQ_API_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`.
+3. Set `GEMINI_API_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey).
    - The admin password must be 5-10 characters. This is shorter than recommended; use this only for a private local development setup, not a publicly accessible deployment.
    - The configured email is provisioned with the administrator role when the backend starts.
    - The configured admin password is applied on each backend startup. Change it in `.env` to rotate it.
@@ -33,6 +33,15 @@ The active application database is SQLite at `data/studyai.sqlite`. Keep the `da
 - Google sign-in uses the OAuth authorization-code flow and requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. For local development, set `GOOGLE_REDIRECT_URI` to `http://127.0.0.1:5173/api/auth/google/callback`. On Render, the server derives the HTTPS callback from `RENDER_EXTERNAL_URL` when `GOOGLE_REDIRECT_URI` is missing or invalid; register `https://<your-render-host>/api/auth/google/callback` in Google Cloud Console. For a custom production domain, set `GOOGLE_REDIRECT_URI` to that domain's exact HTTPS callback and register the same URI in Google Cloud Console. Restart the API after changing environment variables.
 - Google accounts must provide a verified email. Existing accounts with the same verified email are signed in, while new Google accounts follow the admin sign-up setting. Google sign-in respects disabled accounts and does not change an existing account's role.
 - For production, serve over HTTPS and set `NODE_ENV=production` so session cookies use the `Secure` attribute.
+
+## Billing
+
+- Premium and Pro use one-time Paystack payments in NGN: ₦2,500 and ₦5,000 respectively. Each successful payment grants 30 days; plans do not renew automatically.
+- Set `PAYSTACK_SECRET_KEY` to a Paystack test secret key in local development. Never put the secret key in frontend code, commit it, or send it in chat.
+- Set `APP_BASE_URL` to the exact frontend origin, such as `http://localhost:5173` locally or your HTTPS production domain. Production billing requires HTTPS.
+- In the Paystack dashboard, configure the webhook URL as `<APP_BASE_URL>/api/billing/paystack/webhook`. The app verifies webhook signatures and independently verifies transactions with Paystack before activating access.
+- Premium includes 30 AI Tutor requests and 10 quiz generations per UTC day. Pro includes 100 AI Tutor requests and 30 quiz generations per UTC day. Administrator accounts receive Pro access without a payment.
+- Only Dark Theme Studio and these usage limits are available paid features; other planned features are not included in checkout.
 
 ## Commands
 

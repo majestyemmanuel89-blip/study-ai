@@ -1,7 +1,11 @@
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from 'node:crypto'
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash, createHmac } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { DARK_THEMES, DEFAULT_THEME_ID } from './src/themes.js'
+import { DAILY_USAGE_LIMITS, PLAN_ACCESS_MS, PLAN_PRICES_NGN as PAID_PLAN_PRICES } from './src/planCatalog.js'
+
+export { DAILY_USAGE_LIMITS, PAID_PLAN_PRICES }
 
 const SESSION_COOKIE = 'studyai_session'
 const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
@@ -23,7 +27,6 @@ const DEFAULT_SETTINGS = {
   signupsEnabled: true,
   maintenanceMode: false,
 }
-
 function normalizeEmail(email) {
   return email.trim().toLowerCase()
 }
@@ -74,11 +77,17 @@ function isValidGoogleRedirectUri(value, requireHttps) {
 }
 
 function safeUser(user) {
+  const planExpiresAt = Number.isFinite(user.plan_expires_at) ? user.plan_expires_at : null
+  const planExpired = planExpiresAt !== null && planExpiresAt <= Date.now()
+  const plan = user.role === 'admin' ? 'pro' : planExpired ? 'free' : user.plan || 'free'
+
   return {
     id: user.id,
     email: user.email,
     displayName: user.display_name,
     role: user.role,
+    plan,
+    planExpiresAt: user.role === 'admin' || planExpired ? null : planExpiresAt,
   }
 }
 
@@ -153,6 +162,13 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
       expires_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS sessions_expiry_idx ON sessions(expires_at);
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      token_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS password_reset_tokens_expiry_idx ON password_reset_tokens(expires_at);
     CREATE TABLE IF NOT EXISTS chats (
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       id TEXT NOT NULL,
@@ -174,7 +190,28 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
       value_json TEXT NOT NULL,
       updated_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS billing_payments (
+      reference TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan TEXT NOT NULL CHECK (plan IN ('premium', 'pro')),
+      amount INTEGER NOT NULL,
+      currency TEXT NOT NULL CHECK (currency = 'NGN'),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid')),
+      created_at INTEGER NOT NULL,
+      paid_at INTEGER,
+      expires_at INTEGER,
+      provider_transaction_id TEXT
+    );
+    CREATE INDEX IF NOT EXISTS billing_payments_user_idx ON billing_payments(user_id, created_at DESC);
   `)
+
+  const userColumns = database.prepare('PRAGMA table_info(users)').all()
+  if (!userColumns.some(column => column.name === 'plan')) {
+    database.exec("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'premium', 'pro'))")
+  }
+  if (!userColumns.some(column => column.name === 'plan_expires_at')) {
+    database.exec('ALTER TABLE users ADD COLUMN plan_expires_at INTEGER')
+  }
 
   const queries = {
     userByEmail: database.prepare('SELECT * FROM users WHERE email = ?'),
@@ -198,8 +235,24 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
     deleteSession: database.prepare('DELETE FROM sessions WHERE token_hash = ?'),
     deleteUserSessions: database.prepare('DELETE FROM sessions WHERE user_id = ?'),
     deleteExpiredSessions: database.prepare('DELETE FROM sessions WHERE expires_at <= ?'),
+    deleteExpiredPasswordResetTokens: database.prepare('DELETE FROM password_reset_tokens WHERE expires_at <= ?'),
+    deletePasswordResetTokensForUser: database.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?'),
+    insertPasswordResetToken: database.prepare(`
+      INSERT INTO password_reset_tokens (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)
+    `),
+    passwordResetToken: database.prepare(`
+      SELECT user_id, expires_at FROM password_reset_tokens WHERE token_hash = ?
+    `),
+    resetUserPassword: database.prepare('UPDATE users SET password_salt = ?, password_hash = ? WHERE id = ?'),
     updateLogin: database.prepare('UPDATE users SET last_login_at = ? WHERE id = ?'),
     addEvent: database.prepare('INSERT INTO usage_events (user_id, event_type, created_at) VALUES (?, ?, ?)'),
+    countDailyUsage: database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM usage_events
+      WHERE user_id = ?
+        AND event_type = ?
+        AND created_at >= ?
+    `),
     getValue: database.prepare('SELECT value_json FROM app_values WHERE key = ?'),
     setValue: database.prepare(`
       INSERT INTO app_values (key, value_json, updated_at) VALUES (?, ?, ?)
@@ -234,10 +287,27 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
       LIMIT 100
     `),
     listUsers: database.prepare(`
-      SELECT id, email, display_name, role, is_active, created_at, last_login_at
+      SELECT id, email, display_name, role, plan, is_active, created_at, last_login_at
       FROM users ORDER BY created_at DESC
     `),
     updateUserActive: database.prepare('UPDATE users SET is_active = ? WHERE id = ?'),
+    updateUserPlan: database.prepare('UPDATE users SET plan = ?, plan_expires_at = NULL WHERE id = ?'),
+    addPendingPayment: database.prepare(`
+      INSERT INTO billing_payments (reference, user_id, plan, amount, currency, created_at)
+      VALUES (?, ?, ?, ?, 'NGN', ?)
+    `),
+    paymentByReference: database.prepare(`
+      SELECT billing_payments.*, users.email AS user_email
+      FROM billing_payments JOIN users ON users.id = billing_payments.user_id
+      WHERE billing_payments.reference = ?
+    `),
+    deletePendingPayment: database.prepare("DELETE FROM billing_payments WHERE reference = ? AND status = 'pending'"),
+    markPaymentPaid: database.prepare(`
+      UPDATE billing_payments
+      SET status = 'paid', paid_at = ?, expires_at = ?, provider_transaction_id = ?
+      WHERE reference = ? AND status = 'pending'
+    `),
+    updatePaidPlan: database.prepare('UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?'),
   }
 
   for (const [key, value] of Object.entries(DEFAULT_CONTENT)) {
@@ -329,11 +399,90 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
     deleteSession(token) {
       if (token) queries.deleteSession.run(hashToken(token))
     },
+    createPasswordResetToken(userId) {
+      const now = Date.now()
+      queries.deleteExpiredPasswordResetTokens.run(now)
+      queries.deletePasswordResetTokensForUser.run(userId)
+      const token = randomBytes(32).toString('hex')
+      queries.insertPasswordResetToken.run(hashToken(token), userId, now + 60 * 60 * 1000, now)
+      return token
+    },
+    resetPassword(token, password) {
+      if (typeof token !== 'string' || !/^[a-f0-9]{64}$/i.test(token)) return false
+      database.exec('BEGIN IMMEDIATE')
+      try {
+        const reset = queries.passwordResetToken.get(hashToken(token))
+        if (!reset || reset.expires_at <= Date.now()) {
+          database.exec('ROLLBACK')
+          return false
+        }
+        const credentials = hashPassword(password)
+        queries.resetUserPassword.run(credentials.salt, credentials.hash, reset.user_id)
+        queries.deleteUserSessions.run(reset.user_id)
+        queries.deletePasswordResetTokensForUser.run(reset.user_id)
+        database.exec('COMMIT')
+        return true
+      } catch (error) {
+        database.exec('ROLLBACK')
+        throw error
+      }
+    },
     updateLastLogin(userId) {
       queries.updateLogin.run(Date.now(), userId)
     },
     recordUsage(userId, eventType) {
       queries.addEvent.run(userId, eventType, Date.now())
+    },
+    consumeDailyUsage(userId, eventType, limit) {
+      const now = new Date()
+      now.setUTCHours(0, 0, 0, 0)
+      const dayStart = now.getTime()
+
+      database.exec('BEGIN IMMEDIATE')
+
+      try {
+        const result = queries.countDailyUsage.get(
+          userId,
+          eventType,
+          dayStart,
+        )
+        const used = Number(result.count)
+
+        if (used >= limit) {
+          database.exec('COMMIT')
+          return {
+            allowed: false,
+            used,
+            limit,
+            remaining: 0,
+          }
+        }
+
+        queries.addEvent.run(userId, eventType, Date.now())
+        database.exec('COMMIT')
+
+        return {
+          allowed: true,
+          used: used + 1,
+          limit,
+          remaining: limit - used - 1,
+        }
+      } catch (error) {
+        database.exec('ROLLBACK')
+        throw error
+      }
+    },
+    getDailyUsage(userId, eventType) {
+      const now = new Date()
+      now.setUTCHours(0, 0, 0, 0)
+
+      const result = queries.countDailyUsage.get(
+        userId,
+        eventType,
+        now.getTime(),
+      )
+
+      return Number(result.count)
     },
     getRecentActivity() {
       return queries.recentActivity.all().map(event => ({
@@ -429,6 +578,73 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
       const result = queries.updateUserActive.run(isActive ? 1 : 0, userId)
       return result.changes > 0
     },
+    setUserPlan(userId, plan) {
+      if (!['free', 'premium', 'pro'].includes(plan)) {
+        return { error: 'Choose a valid account plan.' }
+      }
+      const result = queries.updateUserPlan.run(plan, userId)
+      return result.changes > 0 ? { plan } : { error: 'Account not found.' }
+    },
+    createPendingPayment({ userId, reference, plan, amount }) {
+      queries.addPendingPayment.run(reference, userId, plan, amount, Date.now())
+    },
+    deletePendingPayment(reference) {
+      queries.deletePendingPayment.run(reference)
+    },
+    getPayment(reference) {
+      return queries.paymentByReference.get(reference) || null
+    },
+    completePayment(reference, providerTransactionId) {
+      database.exec('BEGIN IMMEDIATE')
+      try {
+        const payment = queries.paymentByReference.get(reference)
+        if (!payment) {
+          database.exec('COMMIT')
+          return { error: 'Payment reference was not found.' }
+        }
+        if (payment.status === 'paid') {
+          database.exec('COMMIT')
+          return { plan: payment.plan, expiresAt: payment.expires_at, alreadyProcessed: true }
+        }
+
+        const user = queries.userById.get(payment.user_id)
+        if (!user) {
+          database.exec('COMMIT')
+          return { error: 'Account was not found.' }
+        }
+
+        const now = Date.now()
+        const accessStartsAt = user.plan_expires_at > now ? user.plan_expires_at : now
+        const expiresAt = accessStartsAt + PLAN_ACCESS_MS
+        queries.markPaymentPaid.run(now, expiresAt, String(providerTransactionId), reference)
+        queries.updatePaidPlan.run(payment.plan, expiresAt, payment.user_id)
+        database.exec('COMMIT')
+        return { plan: payment.plan, expiresAt, alreadyProcessed: false }
+      } catch (error) {
+        database.exec('ROLLBACK')
+        throw error
+      }
+    },
+    getTheme(userId) {
+      const storedTheme = getStoredValue(`user.${userId}.theme`, { id: DEFAULT_THEME_ID })
+      return storedTheme && DARK_THEMES.some(theme => theme.id === storedTheme.id)
+        ? { id: storedTheme.id }
+        : { id: DEFAULT_THEME_ID }
+    },
+    setTheme(userId, values) {
+      const user = queries.userById.get(userId)
+      if (!user) return { error: 'Account not found.' }
+      if (user.role !== 'admin' && !['premium', 'pro'].includes(user.plan)) {
+        return { error: 'Dark Theme Studio is available on Premium and Pro plans.' }
+      }
+      const themeId = values?.id
+      if (!DARK_THEMES.some(theme => theme.id === themeId)) {
+        return { error: 'Choose one of the available Dark Theme Studio themes.' }
+      }
+      const theme = { id: themeId }
+      queries.setValue.run(`user.${userId}.theme`, JSON.stringify(theme), Date.now())
+      return { theme }
+    },
     getAnalytics() {
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
       return {
@@ -448,6 +664,7 @@ export function createAuthStore(databasePath = process.env.DATABASE_PATH || path
 export function attachAuth(app, store) {
   const registrationAttempts = new Map()
   const loginFailures = new Map()
+  const passwordResetAttempts = new Map()
   const cookieSecure = process.env.NODE_ENV === 'production'
   const oauthStateCookie = 'studyai_google_state'
   const getGoogleConfig = () => {
@@ -571,6 +788,19 @@ export function attachAuth(app, store) {
     next()
   }
 
+  const allowPasswordResetAttempt = (req, res, next) => {
+    const now = Date.now()
+    const ip = req.ip || req.socket.remoteAddress || 'unknown'
+    const recentAttempts = (passwordResetAttempts.get(ip) || [])
+      .filter(timestamp => now - timestamp < AUTH_ATTEMPT_WINDOW_MS)
+    if (recentAttempts.length >= MAX_AUTH_ATTEMPTS) {
+      return res.status(429).json({ error: 'Too many attempts. Wait 15 minutes before trying again.' })
+    }
+    recentAttempts.push(now)
+    passwordResetAttempts.set(ip, recentAttempts)
+    next()
+  }
+
   const allowLoginAttempt = (req, res, next) => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown'
     const attempt = loginFailures.get(ip)
@@ -600,6 +830,170 @@ export function attachAuth(app, store) {
     loginFailures.delete(ip)
   }
 
+  function getAppBaseUrl(req) {
+    const configuredUrl = process.env.APP_BASE_URL?.trim()
+    if (process.env.NODE_ENV === 'production' && !configuredUrl) {
+      throw new Error('APP_BASE_URL must be configured for production billing.')
+    }
+    const baseUrl = new URL(configuredUrl || req.get('origin') || `${req.protocol}://${req.get('host')}`)
+    if (baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash) {
+      throw new Error('APP_BASE_URL is invalid.')
+    }
+    if (process.env.NODE_ENV === 'production' && baseUrl.protocol !== 'https:') {
+      throw new Error('APP_BASE_URL must use HTTPS in production.')
+    }
+    return baseUrl.origin
+  }
+
+  async function verifyPaystackPayment(reference, payment) {
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+      signal: AbortSignal.timeout(15000),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || result?.status !== true) {
+      throw new Error('Paystack could not verify the transaction.')
+    }
+
+    const transaction = result.data
+    return transaction
+      && transaction.reference === reference
+      && transaction.status === 'success'
+      && Number(transaction.amount) === payment.amount
+      && transaction.currency === payment.currency
+      && transaction.customer?.email?.toLowerCase() === payment.user_email.toLowerCase()
+      && transaction.id !== undefined
+      ? { transactionId: transaction.id }
+      : null
+  }
+
+  function redirectBillingResult(req, res, status) {
+    try {
+      const destination = new URL(getAppBaseUrl(req))
+      destination.searchParams.set('billing', status)
+      res.redirect(destination.toString())
+    } catch {
+      res.status(503).send('Billing callback is not configured.')
+    }
+  }
+
+  app.post('/api/billing/checkout', checkOrigin, requireUser, requireCsrf, async (req, res) => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim()
+    if (!secretKey) {
+      return res.status(503).json({ error: 'Online payments are not configured yet.' })
+    }
+    const plan = req.body?.plan
+    if (!['premium', 'pro'].includes(plan)) {
+      return res.status(400).json({ error: 'Choose a valid paid plan.' })
+    }
+    if (req.authUser.role === 'admin') {
+      return res.status(409).json({ error: 'Administrator accounts already have Pro access.' })
+    }
+
+    let appBaseUrl
+    try {
+      appBaseUrl = getAppBaseUrl(req)
+    } catch {
+      return res.status(503).json({ error: 'Billing is not configured for this website yet.' })
+    }
+
+    const reference = `studyai-${randomUUID()}`
+    const amount = PAID_PLAN_PRICES[plan] * 100
+    try {
+      store.createPendingPayment({ userId: req.authUser.id, reference, plan, amount })
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: req.authUser.email,
+          amount: String(amount),
+          currency: 'NGN',
+          reference,
+          callback_url: new URL('/api/billing/paystack/callback', appBaseUrl).toString(),
+          metadata: { user_id: req.authUser.id, plan },
+        }),
+        signal: AbortSignal.timeout(15000),
+      })
+      const result = await response.json().catch(() => null)
+      let authorizationUrl
+      try {
+        authorizationUrl = new URL(result?.data?.authorization_url)
+      } catch {
+        authorizationUrl = null
+      }
+      if (
+        !response.ok
+        || result?.status !== true
+        || result.data.reference !== reference
+        || authorizationUrl?.origin !== 'https://checkout.paystack.com'
+      ) {
+        store.deletePendingPayment(reference)
+        return res.status(502).json({ error: 'Could not start checkout. Please try again.' })
+      }
+
+      res.json({ authorizationUrl: authorizationUrl.toString() })
+    } catch (error) {
+      store.deletePendingPayment(reference)
+      console.error('Paystack checkout initialization failed:', error.message)
+      res.status(502).json({ error: 'Could not start checkout. Please try again.' })
+    }
+  })
+
+  app.get('/api/billing/paystack/callback', async (req, res) => {
+    const reference = typeof req.query.reference === 'string' ? req.query.reference : ''
+    const payment = reference ? store.getPayment(reference) : null
+    if (!payment || !process.env.PAYSTACK_SECRET_KEY) {
+      return redirectBillingResult(req, res, 'failed')
+    }
+
+    try {
+      const verification = await verifyPaystackPayment(reference, payment)
+      if (!verification) return redirectBillingResult(req, res, 'failed')
+      const result = store.completePayment(reference, verification.transactionId)
+      if (result.error) return redirectBillingResult(req, res, 'failed')
+      if (!result.alreadyProcessed) store.recordUsage(payment.user_id, 'plan_purchase')
+      redirectBillingResult(req, res, 'success')
+    } catch (error) {
+      console.error('Paystack callback verification failed:', error.message)
+      redirectBillingResult(req, res, 'failed')
+    }
+  })
+
+  app.post('/api/billing/paystack/webhook', async (req, res) => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim()
+    const signature = req.get('x-paystack-signature') || ''
+    if (!secretKey) return res.status(503).json({ error: 'Payment verification is not configured.' })
+    if (!req.rawBody || !/^[a-f0-9]{128}$/i.test(signature)) {
+      return res.status(401).json({ error: 'Invalid webhook signature.' })
+    }
+
+    const expectedSignature = createHmac('sha512', secretKey).update(req.rawBody).digest()
+    const suppliedSignature = Buffer.from(signature, 'hex')
+    if (!timingSafeEqual(expectedSignature, suppliedSignature)) {
+      return res.status(401).json({ error: 'Invalid webhook signature.' })
+    }
+
+    const reference = req.body?.event === 'charge.success' && req.body.data?.reference
+    if (typeof reference !== 'string') return res.json({ received: true })
+    const payment = store.getPayment(reference)
+    if (!payment) return res.json({ received: true })
+
+    try {
+      const verification = await verifyPaystackPayment(reference, payment)
+      if (!verification) return res.status(502).json({ error: 'Payment could not yet be verified.' })
+      const result = store.completePayment(reference, verification.transactionId)
+      if (result.error) return res.status(502).json({ error: 'Payment could not yet be applied.' })
+      if (!result.alreadyProcessed) store.recordUsage(payment.user_id, 'plan_purchase')
+      res.json({ received: true })
+    } catch (error) {
+      console.error('Paystack webhook verification failed:', error.message)
+      res.status(502).json({ error: 'Payment could not yet be verified.' })
+    }
+  })
+
   app.use(['/api/tutor', '/api/quiz'], checkOrigin, requireUser, requireCsrf, (req, res, next) => {
     if (store.getSettings().maintenanceMode && req.authUser.role !== 'admin') {
       return res.status(503).json({ error: 'StudyAI is temporarily unavailable for maintenance.' })
@@ -611,9 +1005,38 @@ export function attachAuth(app, store) {
     res.json({
       user: req.authUser,
       csrfToken: req.authSession?.csrfToken || null,
+      theme: req.authUser ? store.getTheme(req.authUser.id) : null,
       googleConfigured: googleConfigured(),
       content: store.getContent(),
       settings: store.getSettings(),
+    })
+  })
+
+  app.get('/api/usage', requireUser, (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const plan = req.authUser.role === 'admin' ? 'pro' : req.authUser.plan
+    const tutorLimit = DAILY_USAGE_LIMITS[plan].tutor_request
+    const quizLimit = DAILY_USAGE_LIMITS[plan].quiz_generation
+    const tutorUsed = store.getDailyUsage(req.authUser.id, 'tutor_request')
+    const quizUsed = store.getDailyUsage(req.authUser.id, 'quiz_generation')
+    const nextReset = new Date()
+    nextReset.setUTCHours(24, 0, 0, 0)
+
+    res.json({
+      usage: {
+        plan,
+        tutor: {
+          used: tutorUsed,
+          limit: tutorLimit,
+          remaining: Math.max(0, tutorLimit - tutorUsed),
+        },
+        quiz: {
+          used: quizUsed,
+          limit: quizLimit,
+          remaining: Math.max(0, quizLimit - quizUsed),
+        },
+        resetsAt: nextReset.toISOString(),
+      },
     })
   })
 
@@ -769,7 +1192,11 @@ export function attachAuth(app, store) {
     const session = store.createSession(user.id)
     store.updateLastLogin(user.id)
     sendSessionCookie(res, session.token, SESSION_LIFETIME_MS)
-    res.status(201).json({ user: safeUser(user), csrfToken: session.csrfToken })
+    res.status(201).json({
+      user: safeUser(user),
+      csrfToken: session.csrfToken,
+      theme: store.getTheme(user.id),
+    })
   })
 
   app.post('/api/auth/login', checkOrigin, allowLoginAttempt, (req, res) => {
@@ -791,7 +1218,72 @@ export function attachAuth(app, store) {
     store.updateLastLogin(user.id)
     store.recordUsage(user.id, 'login')
     sendSessionCookie(res, session.token, SESSION_LIFETIME_MS)
-    res.json({ user: safeUser(user), csrfToken: session.csrfToken })
+    res.json({
+      user: safeUser(user),
+      csrfToken: session.csrfToken,
+      theme: store.getTheme(user.id),
+    })
+  })
+
+  app.post('/api/auth/password-reset-request', checkOrigin, allowPasswordResetAttempt, async (req, res) => {
+    const { email } = req.body ?? {}
+    if (typeof email !== 'string' || !isValidEmail(normalizeEmail(email))) {
+      return res.status(400).json({ error: 'Enter a valid email address.' })
+    }
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+      return res.status(503).json({ error: 'Password recovery is not configured on this server.' })
+    }
+
+    let resetUrl
+    try {
+      resetUrl = new URL('/', getAppBaseUrl(req))
+    } catch {
+      return res.status(503).json({ error: 'Password recovery is not configured on this server.' })
+    }
+
+    const user = store.findUserByEmail(normalizeEmail(email))
+    if (user) {
+      const token = store.createPasswordResetToken(user.id)
+      resetUrl.searchParams.set('resetToken', token)
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: process.env.EMAIL_FROM,
+            to: [user.email],
+            subject: 'Reset your StudyAI password',
+            html: `<p>We received a request to reset your StudyAI password.</p><p><a href="${resetUrl.toString()}">Choose a new password</a></p><p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>`,
+            text: `We received a request to reset your StudyAI password. Choose a new password here: ${resetUrl.toString()} This link expires in 1 hour. If you did not request this, you can ignore this email.`,
+          }),
+          signal: AbortSignal.timeout(15000),
+        })
+        if (!response.ok) throw new Error(`Resend request failed (${response.status}).`)
+      } catch (error) {
+        console.error('Password reset email delivery failed:', error.message)
+      }
+    }
+
+    res.set('Cache-Control', 'no-store')
+    res.status(202).json({ message: 'If an account exists for that email, a password reset link will be sent.' })
+  })
+
+  app.post('/api/auth/password-reset', checkOrigin, (req, res) => {
+    const { token, password } = req.body ?? {}
+    if (typeof token !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: 'This password reset link is invalid or expired.' })
+    }
+    if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
+      return res.status(400).json({ error: `Your password must be ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters.` })
+    }
+    if (!store.resetPassword(token, password)) {
+      return res.status(400).json({ error: 'This password reset link is invalid or expired. Request a new one.' })
+    }
+    res.set('Cache-Control', 'no-store')
+    res.json({ message: 'Your password has been updated. Sign in with your new password.' })
   })
 
   app.post('/api/auth/logout', checkOrigin, requireUser, requireCsrf, (req, res) => {
@@ -817,8 +1309,31 @@ export function attachAuth(app, store) {
     res.json({ chats: result.chats })
   })
 
+  app.get('/api/account/theme', requireUser, (req, res) => {
+    res.json({ theme: store.getTheme(req.authUser.id) })
+  })
+
+  app.put('/api/account/theme', checkOrigin, requireUser, requireCsrf, (req, res) => {
+    if (req.authUser.role !== 'admin' && !['premium', 'pro'].includes(req.authUser.plan)) {
+      return res.status(403).json({ error: 'Dark Theme Studio is available on Premium and Pro plans.' })
+    }
+    const result = store.setTheme(req.authUser.id, req.body ?? {})
+    if (result.error) return res.status(400).json({ error: result.error })
+    store.recordUsage(req.authUser.id, 'account_theme_updated')
+    res.json(result)
+  })
+
   app.get('/api/admin/users', requireAdmin, (_req, res) => {
     res.json({ users: store.getUsers() })
+  })
+
+  app.patch('/api/admin/users/:id/plan', checkOrigin, requireAdmin, requireCsrf, (req, res) => {
+    const result = store.setUserPlan(req.params.id, req.body?.plan)
+    if (result.error) {
+      return res.status(result.error === 'Account not found.' ? 404 : 400).json({ error: result.error })
+    }
+    store.recordUsage(req.authUser.id, 'admin_user_plan_updated')
+    res.json({ success: true, plan: result.plan })
   })
 
   app.patch('/api/admin/users/:id', checkOrigin, requireAdmin, requireCsrf, (req, res) => {

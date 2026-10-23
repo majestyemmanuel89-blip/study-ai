@@ -3,7 +3,7 @@ import './Quiz.css'
 
 const QUESTION_COUNTS = [5, 10]
 
-export default function Quiz({ csrfToken }) {
+export default function Quiz({ csrfToken, usageRemaining, onUsageChange }) {
   const [topic, setTopic] = useState('')
   const [difficulty, setDifficulty] = useState('mixed')
   const [questionCount, setQuestionCount] = useState(5)
@@ -33,6 +33,9 @@ export default function Quiz({ csrfToken }) {
         },
         body: JSON.stringify({ topic: topic.trim(), difficulty, questionCount }),
       })
+      if (response.ok || response.status === 429 || response.status >= 500) {
+        onUsageChange?.()
+      }
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -125,10 +128,19 @@ export default function Quiz({ csrfToken }) {
           </div>
 
           {error && <p className="study-quiz-error" role="alert">{error}</p>}
+          {usageRemaining === 0 && (
+            <p className="study-quiz-error" role="status">
+              You’ve used today’s quiz allowance. It resets at UTC midnight.
+            </p>
+          )}
 
-          <button className="study-primary-button study-quiz-start" type="submit" disabled={loading || !topic.trim()}>
-            {loading ? 'Creating your quiz…' : 'Create quiz'}
-            {!loading && <span aria-hidden="true">→</span>}
+          <button
+            className="study-primary-button study-quiz-start"
+            type="submit"
+            disabled={loading || !topic.trim() || usageRemaining === 0}
+          >
+            {loading ? 'Creating your quiz…' : usageRemaining === 0 ? 'Daily limit reached' : 'Create quiz'}
+            {!loading && usageRemaining !== 0 && <span aria-hidden="true">→</span>}
           </button>
           <p className="study-quiz-note">Your score and answers are shown when you finish.</p>
         </form>

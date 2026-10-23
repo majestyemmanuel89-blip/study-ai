@@ -1,5 +1,6 @@
 
-import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import './FileActionMenu.css'
 
@@ -10,11 +11,21 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const MAX_TEXTBOOK_LENGTH = 60000
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif)$/i
 const FOLLOW_UP_SUGGESTIONS = [
   { label: 'Explain more simply', prompt: 'Explain that in simpler terms.' },
   { label: 'Give me an example', prompt: 'Give me a practical example of that.' },
   { label: 'Quiz me on this', prompt: 'Quiz me on this topic.' },
 ]
+
+function isImageFile(file) {
+  return IMAGE_MIME_TYPES.has(file.type) || IMAGE_EXTENSIONS.test(file.name)
+}
+
+function isSupportedFile(file) {
+  return /\.(pdf|txt|md)$/i.test(file.name) || isImageFile(file)
+}
 
 const Icon = ({ name, size = 18 }) => {
   const paths = {
@@ -58,6 +69,8 @@ export default function FileActionMenu({
   onFilesSelected,
   onSelectDocument,
   onConnect,
+  onUsageChange,
+  tutorRemaining,
   remainingUploads = 3,
   dailyUploadLimit = 5,
 }) {
@@ -65,6 +78,8 @@ export default function FileActionMenu({
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedFiles, setSelectedFiles] = useState([])
+  const [imagePreviews, setImagePreviews] = useState([])
+  const [menuPosition, setMenuPosition] = useState(null)
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState(initialMessages)
   const [sending, setSending] = useState(false)
@@ -72,6 +87,16 @@ export default function FileActionMenu({
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null)
   const fileInput = useRef(null)
   const questionInput = useRef(null)
+  const attachButton = useRef(null)
+  const menuElement = useRef(null)
+  const imagePreviewUrls = useRef(new Map())
+
+  const sendableFiles = selectedFiles.filter(file => !isImageFile(file))
+  const imagePreviewUrlMap = new Map(imagePreviews.map(preview => [preview.file, preview.url]))
+  const filteredDocuments = documents.filter(doc => {
+    const name = typeof doc === 'string' ? doc : doc.name
+    return name?.toLowerCase().includes(search.toLowerCase())
+  })
 
   useEffect(() => {
     if (copiedMessageIndex === null) return undefined
@@ -79,28 +104,62 @@ export default function FileActionMenu({
     return () => window.clearTimeout(timeoutId)
   }, [copiedMessageIndex])
 
-  const filteredDocuments = documents.filter(doc => {
-    const name = typeof doc === 'string' ? doc : doc.name
-    return name?.toLowerCase().includes(search.toLowerCase())
-  })
+  useEffect(() => () => {
+    imagePreviewUrls.current.forEach(url => URL.revokeObjectURL(url))
+    imagePreviewUrls.current.clear()
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return undefined
+
+    function positionMenu() {
+      const anchor = attachButton.current?.getBoundingClientRect()
+      const menu = menuElement.current
+      if (!anchor || !menu) return
+
+      const width = Math.min(390, Math.max(0, window.innerWidth - 24))
+      const left = Math.min(
+        Math.max(12, anchor.left),
+        Math.max(12, window.innerWidth - width - 12),
+      )
+      const top = Math.max(12, anchor.top - menu.getBoundingClientRect().height - 12)
+      setMenuPosition({ top: `${top}px`, left: `${left}px`, width: `${width}px` })
+    }
+
+    positionMenu()
+    window.addEventListener('resize', positionMenu)
+    window.addEventListener('scroll', positionMenu, true)
+    return () => {
+      window.removeEventListener('resize', positionMenu)
+      window.removeEventListener('scroll', positionMenu, true)
+    }
+  }, [open, notice, search, selectedFiles.length, filteredDocuments.length])
 
   function handleFiles(event) {
     const files = Array.from(event.target.files || [])
     if (!files.length) return
 
-    const allowed = /\.(pdf|txt|md)$/i
-    const valid = files.filter(file => allowed.test(file.name) && file.size <= MAX_FILE_SIZE)
+    const valid = files.filter(file => isSupportedFile(file) && file.size <= MAX_FILE_SIZE)
 
     if (!valid.length) {
-      setNotice('Choose a PDF, TXT or Markdown file smaller than 20 MB.')
+      setNotice('Choose a PDF, TXT, Markdown or image file smaller than 20 MB.')
       return
     }
 
+    imagePreviewUrls.current.forEach(url => URL.revokeObjectURL(url))
+    imagePreviewUrls.current.clear()
+    const previews = valid.filter(isImageFile).map(file => {
+      const url = URL.createObjectURL(file)
+      imagePreviewUrls.current.set(file, url)
+      return { file, url }
+    })
+    setImagePreviews(previews)
     setSelectedFiles(valid)
     const skippedCount = files.length - valid.length
+    const imageCount = valid.filter(isImageFile).length
     setNotice(skippedCount
       ? `${valid.length} selected; ${skippedCount} unsupported or oversized file${skippedCount === 1 ? '' : 's'} skipped`
-      : `${valid.length} file${valid.length === 1 ? '' : 's'} selected`)
+      : `${valid.length} file${valid.length === 1 ? '' : 's'} selected${imageCount ? '. Images are preview-only and are not sent to StudyAI.' : ''}`)
 
     onFilesSelected?.(valid)
     setOpen(false)
@@ -136,14 +195,14 @@ export default function FileActionMenu({
 
   async function sendMessage(event) {
     event.preventDefault()
-    if (sending || (!question.trim() && selectedFiles.length === 0)) return
+    if (sending || (!question.trim() && sendableFiles.length === 0)) return
 
     onChatStart?.()
     setSending(true)
     setChatError('')
 
     try {
-      const attachedFiles = [...selectedFiles]
+      const attachedFiles = [...sendableFiles]
       const extractedDocuments = await Promise.all(attachedFiles.map(extractText))
       const textbookText = extractedDocuments.join('\n\n').slice(0, MAX_TEXTBOOK_LENGTH)
       const prompt = question.trim() || 'Please summarize this document and explain its key ideas.'
@@ -165,6 +224,9 @@ export default function FileActionMenu({
           history: messages.slice(-8).map(({ role, content }) => ({ role, content })),
         }),
       })
+      if (response.ok || response.status === 429 || response.status >= 500) {
+        onUsageChange?.()
+      }
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -182,7 +244,7 @@ export default function FileActionMenu({
       setMessages(nextMessages)
       onMessagesChange?.(nextMessages)
       setQuestion('')
-      setSelectedFiles([])
+      setSelectedFiles(currentFiles => currentFiles.filter(isImageFile))
     } catch (error) {
       setChatError(error.message || 'Could not reach the AI tutor. Check that the backend is running.')
     } finally {
@@ -238,7 +300,7 @@ export default function FileActionMenu({
 
   return (
     <div className="file-menu-wrap">
-      {open && (
+      {open && createPortal((
         <>
           <button
             className="file-menu-backdrop"
@@ -247,8 +309,10 @@ export default function FileActionMenu({
           />
 
           <section
+            ref={menuElement}
             className="file-action-menu"
             aria-label="File and document actions"
+            style={menuPosition || undefined}
           >
             <div className="file-menu-status">
               <div className="status-left">
@@ -275,7 +339,7 @@ export default function FileActionMenu({
               ref={fileInput}
               className="visually-hidden"
               type="file"
-              accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+              accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,application/pdf,text/plain,text/markdown,image/jpeg,image/png,image/webp,image/gif"
               multiple
               onChange={handleFiles}
             />
@@ -286,8 +350,8 @@ export default function FileActionMenu({
             >
               <span className="option-icon"><Icon name="paperclip" /></span>
               <span className="option-copy">
-                <strong>Upload PDF or text document</strong>
-                <small>PDF, TXT or Markdown · up to 20 MB</small>
+                <strong>Upload PDF, text or image</strong>
+                <small>PDF, TXT, Markdown or image · up to 20 MB</small>
               </span>
               <Icon name="chevron" size={16} />
             </button>
@@ -311,7 +375,9 @@ export default function FileActionMenu({
               <div className="selected-file-list">
                 {selectedFiles.map((file, index) => (
                   <div className="selected-file" key={`${file.name}-${index}`}>
-                    <Icon name="file" size={16} />
+                    {isImageFile(file) && imagePreviewUrlMap.has(file)
+                      ? <img className="file-image-preview" src={imagePreviewUrlMap.get(file)} alt={`Preview of ${file.name}`} />
+                      : <Icon name="file" size={16} />}
                     <span>{file.name}</span>
                     <span className="file-size">
                       {(file.size / 1024 / 1024).toFixed(1)} MB
@@ -404,7 +470,7 @@ export default function FileActionMenu({
             </div>
           </section>
         </>
-      )}
+      ), document.body)}
 
       {messages.length > 0 && (
         <div className="chat-messages" role="log" aria-live="polite" aria-label="StudyAI conversation">
@@ -478,7 +544,9 @@ export default function FileActionMenu({
           <div className="composer-attachments" aria-label="Attached files">
             {selectedFiles.map((file, index) => (
               <div className="composer-file" key={`${file.name}-${index}`}>
-                <Icon name="file" size={15} />
+                {isImageFile(file) && imagePreviewUrlMap.has(file)
+                  ? <img className="file-image-preview" src={imagePreviewUrlMap.get(file)} alt={`Preview of ${file.name}`} />
+                  : <Icon name="file" size={15} />}
                 <span className="composer-file-name" title={file.name}>{file.name}</span>
                 <button
                   className="composer-file-remove"
@@ -486,6 +554,12 @@ export default function FileActionMenu({
                   aria-label={`Remove ${file.name}`}
                   disabled={sending}
                   onClick={() => {
+                    const imageUrl = imagePreviewUrls.current.get(file)
+                    if (imageUrl) {
+                      URL.revokeObjectURL(imageUrl)
+                      imagePreviewUrls.current.delete(file)
+                      setImagePreviews(current => current.filter(preview => preview.file !== file))
+                    }
                     setSelectedFiles(currentFiles =>
                       currentFiles.filter((_, fileIndex) => fileIndex !== index)
                     )
@@ -497,9 +571,13 @@ export default function FileActionMenu({
             ))}
           </div>
         )}
+        {imagePreviews.length > 0 && (
+          <p className="composer-image-note">Images are preview-only and are not sent to StudyAI.</p>
+        )}
 
         <div className="composer-controls">
           <button
+            ref={attachButton}
             className={`composer-attach ${open ? 'is-active' : ''}`}
             type="button"
             onClick={() => setOpen(value => !value)}
@@ -522,14 +600,19 @@ export default function FileActionMenu({
           <button
             className="composer-send"
             type="submit"
-            aria-label={sending ? 'StudyAI is responding' : 'Send message'}
-            title={sending ? 'StudyAI is responding' : 'Send message'}
-            disabled={sending || (!question.trim() && selectedFiles.length === 0)}
+            aria-label={sending ? 'StudyAI is responding' : tutorRemaining === 0 ? 'Daily AI Tutor limit reached' : 'Send message'}
+            title={sending ? 'StudyAI is responding' : tutorRemaining === 0 ? 'Daily AI Tutor limit reached' : 'Send message'}
+            disabled={sending || tutorRemaining === 0 || (!question.trim() && sendableFiles.length === 0)}
           >
             <Icon name="send" size={17} />
           </button>
         </div>
         {sending && <p className="composer-status">StudyAI is thinking...</p>}
+        {tutorRemaining === 0 && (
+          <p className="composer-limit-message" role="status">
+            You’ve used today’s AI Tutor allowance. It resets at UTC midnight.
+          </p>
+        )}
       </form>
       {chatError && <p className="chat-error" role="alert">{chatError}</p>}
     </div>

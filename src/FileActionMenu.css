@@ -22,19 +22,22 @@
 .file-menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 10000;
   background: transparent;
   border: 0;
   cursor: default;
 }
 
 .file-action-menu {
-  position: absolute;
-  z-index: 21;
-  bottom: calc(100% + 12px);
-  left: 0;
+  --menu-bg: #1e1e1e;
+  --menu-border: #343434;
+  --menu-muted: #a1a1aa;
+  --menu-text: #f4f4f5;
+  --menu-accent: #a78bfa;
+  position: fixed;
+  z-index: 10001;
   width: min(100%, 390px);
-  max-height: min(72vh, 620px);
+  max-height: min(calc(100dvh - 24px), 620px);
   overflow-y: auto;
   padding: 12px;
   background: var(--menu-bg);
@@ -342,6 +345,15 @@
   color: #d4d4d8;
 }
 
+.file-image-preview {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid #414141;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 .selected-file > span:first-of-type {
   flex: 1;
   overflow: hidden;
@@ -552,6 +564,12 @@
   padding: 2px 0 8px;
 }
 
+.composer-image-note {
+  margin: 0 0 7px;
+  color: #9993a9;
+  font-size: 10px;
+}
+
 .composer-file {
   display: flex;
   align-items: center;
@@ -563,6 +581,12 @@
   background: #f8f6ff;
   color: #8060e9;
   font-size: 11px;
+}
+
+.composer-file .file-image-preview {
+  width: 28px;
+  height: 28px;
+  border-color: #e8e2f5;
 }
 
 .composer-file-name {

@@ -1,0 +1,88 @@
+export const DEFAULT_THEME_ID = 'midnight'
+
+export const DARK_THEMES = [
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    description: 'Deep black with electric purple highlights.',
+    background: '#09090F',
+    surface: '#141420',
+    accent: '#8B5CF6',
+    raised: '#1C1C2A',
+    border: '#30283F',
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    description: 'Deep navy with a crisp cyan glow.',
+    background: '#07111F',
+    surface: '#101F33',
+    accent: '#22D3EE',
+    raised: '#182A40',
+    border: '#263B50',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald',
+    description: 'Dark forest tones with bright emerald accents.',
+    background: '#071610',
+    surface: '#10271D',
+    accent: '#34D399',
+    raised: '#193529',
+    border: '#294739',
+  },
+  {
+    id: 'crimson',
+    name: 'Crimson',
+    description: 'Charcoal shadows with a confident rose-red edge.',
+    background: '#160B0E',
+    surface: '#261217',
+    accent: '#FB7185',
+    raised: '#351B22',
+    border: '#4C2932',
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk',
+    description: 'Near-black surfaces lit with neon pink.',
+    background: '#100817',
+    surface: '#20102B',
+    accent: '#F472B6',
+    raised: '#30183D',
+    border: '#4A2856',
+  },
+  {
+    id: 'amber',
+    name: 'Amber',
+    description: 'Warm espresso tones with golden highlights.',
+    background: '#171109',
+    surface: '#282013',
+    accent: '#FBBF24',
+    raised: '#372B19',
+    border: '#514127',
+  },
+  {
+    id: 'arctic',
+    name: 'Arctic',
+    description: 'Cool blue-grey layers with icy blue light.',
+    background: '#0B1220',
+    surface: '#172235',
+    accent: '#93C5FD',
+    raised: '#202F45',
+    border: '#34465D',
+  },
+  {
+    id: 'stealth',
+    name: 'Stealth',
+    description: 'Monochrome black and grey with silver details.',
+    background: '#090909',
+    surface: '#181818',
+    accent: '#A3A3A3',
+    raised: '#242424',
+    border: '#383838',
+  },
+]
+
+export function getDarkTheme(themeId) {
+  return DARK_THEMES.find(theme => theme.id === themeId) || DARK_THEMES[0]
+}

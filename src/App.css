@@ -484,8 +484,12 @@ footer span {
   flex-direction: column;
   width: 252px;
   padding: 27px 17px 18px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   border-right: 1px solid #242630;
   background: #101116;
+  scrollbar-color: #393343 transparent;
+  scrollbar-width: thin;
   transition: transform .22s ease;
 }
 
@@ -1748,7 +1752,11 @@ footer span {
   }
 }
 
-@media (max-width: 650px) {
+@media (max-width: 800px) {
+  .study-shell.is-sidebar-open .study-bottom-composer {
+    display: none;
+  }
+
   .study-sidebar {
     position: fixed;
     top: 0;
@@ -2163,4 +2171,1029 @@ footer span {
     gap: 8px;
     flex-wrap: wrap;
   }
+}
+
+/* ========================================
+   STUDY-AI — MINIMAL VIOLET DESIGN POLISH
+   ======================================== */
+
+.study-shell {
+  --study-bg: #101014;
+  --study-panel: #19191f;
+  --study-panel-raised: #202029;
+  --study-line: #303039;
+  --study-text: #fafafa;
+  --study-muted: #a1a1aa;
+  --study-subtle: #777784;
+  --study-purple: #a78bfa;
+  --study-purple-strong: #8b5cf6;
+
+  background:
+    radial-gradient(
+      ellipse at 80% -10%,
+      rgba(139, 92, 246, 0.10),
+      transparent 34rem
+    ),
+    var(--study-bg);
+}
+
+.study-sidebar {
+  background: #111115;
+  border-color: #292831;
+}
+
+.study-brand-mark {
+  border-color: rgba(139, 92, 246, 0.4);
+  border-radius: 11px;
+  color: #ddd0ff;
+  background: linear-gradient(145deg, #34244e, #201b2d);
+}
+
+.study-brand-accent {
+  color: #b69cff;
+}
+
+.study-new-session {
+  border: 1px solid rgba(167, 139, 250, 0.55);
+  border-radius: 11px;
+  color: #fff;
+  background: #7c3aed;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.14);
+}
+
+.study-new-session:hover {
+  background: #8b5cf6;
+}
+
+.study-nav-link {
+  border-radius: 10px;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.study-nav-link.is-active {
+  border-color: rgba(139, 92, 246, 0.28);
+  color: #d5c5ff;
+  background: rgba(139, 92, 246, 0.13);
+}
+
+.study-topbar {
+  background: rgba(16, 16, 20, 0.86);
+  border-color: #292831;
+  backdrop-filter: blur(16px);
+}
+
+.study-sidebar-toggle {
+  border-color: #34333e;
+  border-radius: 11px;
+  background: #19191f;
+}
+
+.study-sidebar-toggle:hover {
+  border-color: #7555b9;
+  color: #d8c7ff;
+  background: #211b2e;
+}
+
+.study-welcome h1 {
+  letter-spacing: -1.5px;
+}
+
+.study-overline,
+.study-section-kicker {
+  color: #b69cff;
+}
+
+.study-orbit {
+  border-color: rgba(167, 139, 250, 0.18);
+}
+
+.study-orbit-center {
+  border-color: rgba(167, 139, 250, 0.5);
+  border-radius: 17px;
+  background: linear-gradient(145deg, #6543a2, #292038);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.18);
+}
+
+.study-focus-banner {
+  border-color: rgba(167, 139, 250, 0.27);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      ellipse at 85% 0%,
+      rgba(139, 92, 246, 0.15),
+      transparent 55%
+    ),
+    linear-gradient(135deg, #201b2b, #191820 70%);
+  box-shadow: 0 14px 45px rgba(0, 0, 0, 0.16);
+}
+
+.study-focus-symbol,
+.study-empty-chat-icon {
+  border-color: rgba(167, 139, 250, 0.28);
+  border-radius: 12px;
+  color: #c9b5ff;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.study-focus-copy h2 {
+  letter-spacing: -0.5px;
+}
+
+.study-primary-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  background: #7c3aed;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.study-primary-button:hover {
+  background: #8b5cf6;
+  box-shadow: 0 5px 18px rgba(124, 58, 237, 0.22);
+}
+
+.study-panel,
+.study-side-card,
+.study-tool-card {
+  border-color: #303039;
+  border-radius: 15px;
+  background: #19191f;
+  box-shadow: none;
+}
+
+.study-tool-card:hover {
+  border-color: rgba(167, 139, 250, 0.42);
+  background: #1d1b25;
+}
+
+.study-tool-icon {
+  border-color: rgba(167, 139, 250, 0.25);
+  border-radius: 11px;
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.study-tool-library .study-tool-icon {
+  border-color: #344b4b;
+  color: #9ed3d2;
+  background: #1b292a;
+}
+
+.study-tool-quiz .study-tool-icon {
+  border-color: #544535;
+  color: #e6c48e;
+  background: #2b251e;
+}
+
+.study-composer .file-composer {
+  border-color: #383541;
+  border-radius: 14px;
+  background: #15151b;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.study-composer .file-composer:focus-within {
+  border-color: rgba(167, 139, 250, 0.7);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.09);
+}
+
+.study-composer .composer-send {
+  border-radius: 10px;
+  color: #fff;
+  background: #7c3aed;
+}
+
+.study-composer .composer-send:hover:not(:disabled) {
+  background: #8b5cf6;
+}
+
+.study-chat-history-item {
+  border-radius: 9px;
+}
+
+.study-chat-history-item.is-active {
+  border-color: rgba(139, 92, 246, 0.28);
+  color: #d5c5ff;
+  background: rgba(139, 92, 246, 0.13);
+}
+
+.study-account {
+  border-color: #292831;
+}
+
+.study-account-signout,
+.study-mobile-signout {
+  border-color: #383541;
+  border-radius: 8px;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.study-account-signout:hover,
+.study-mobile-signout:hover {
+  border-color: #7555b9;
+  color: #d5c5ff;
+}
+
+.study-footer {
+  border-color: #292831;
+}
+
+.study-shell button:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .study-tool-card,
+  .study-primary-button,
+  .study-new-session {
+    transition-duration: 180ms;
+  }
+}
+
+@media (max-width: 650px) {
+  .study-focus-banner {
+    border-radius: 15px;
+  }
+
+  .study-welcome h1 {
+    letter-spacing: -1px;
+  }
+
+  .study-composer .file-composer {
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .study-topbar {
+    gap: 10px;
+  }
+
+  .study-topbar-left {
+    flex: 1;
+  }
+
+  .study-topbar-right {
+    flex: 0 0 auto;
+    gap: 7px;
+  }
+
+  .study-date,
+  .study-breadcrumb > span {
+    display: none;
+  }
+
+  .study-breadcrumb {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .study-breadcrumb strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Compact, high-contrast workspace inspired by the reference UI. */
+.study-shell {
+  --study-bg: #0b0b0d;
+  --study-panel: #111114;
+  --study-panel-raised: #17171b;
+  --study-line: #29292f;
+  --study-text: #efedf2;
+  --study-muted: #a09da8;
+  --study-subtle: #74717d;
+  --study-purple: #b18aff;
+  --study-purple-strong: #9258ed;
+  background: var(--study-bg);
+}
+
+.study-sidebar {
+  width: 220px;
+  padding: 20px 12px 12px;
+  background: #0e0e11;
+  border-color: #25252b;
+}
+
+.study-brand {
+  gap: 8px;
+  margin: 0 0 23px 5px;
+  font-size: 17px;
+}
+
+.study-brand-mark {
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+}
+
+.study-new-session {
+  min-height: 36px;
+  margin-bottom: 22px;
+  border-color: #3a3046;
+  border-radius: 8px;
+  color: #e5d5ff;
+  background: #201a29;
+  box-shadow: none;
+  font-size: 11px;
+}
+
+.study-new-session:hover {
+  background: #2b2138;
+}
+
+.study-nav-label,
+.study-section-kicker,
+.study-focus-label,
+.study-overline,
+.study-side-label,
+.study-tip-label {
+  font-size: 8px;
+  letter-spacing: 1.1px;
+}
+
+.study-nav-label {
+  margin-left: 8px;
+}
+
+.study-nav-link {
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.study-nav-link.is-active {
+  border-color: #4b3764;
+  color: #decaff;
+  background: #21192c;
+}
+
+.study-main {
+  margin-left: 220px;
+}
+
+.study-topbar {
+  min-height: 54px;
+  padding: 0 24px;
+  border-color: #25252b;
+  background: #0d0d10;
+}
+
+.study-sidebar-toggle {
+  width: 33px;
+  height: 33px;
+  flex-basis: 33px;
+  border-color: #2e2e35;
+  border-radius: 7px;
+  background: #141417;
+}
+
+.study-breadcrumb {
+  font-size: 10px;
+}
+
+.study-content {
+  padding: 24px 24px 0;
+}
+
+.study-content.is-overview {
+  min-height: calc(100vh - 54px);
+  min-height: calc(100dvh - 54px);
+}
+
+.study-welcome {
+  min-height: 106px;
+}
+
+.study-welcome h1 {
+  font-size: clamp(24px, 2.6vw, 31px);
+  letter-spacing: -1.1px;
+}
+
+.study-welcome-copy {
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+.study-welcome-mark {
+  transform: scale(.82);
+  transform-origin: center right;
+}
+
+.study-focus-banner {
+  min-height: 158px;
+  gap: 14px;
+  margin: 10px 0 20px;
+  padding: 23px;
+  border-color: #34303b;
+  border-radius: 10px;
+  background: #141317;
+  box-shadow: none;
+}
+
+.study-focus-symbol {
+  width: 37px;
+  height: 37px;
+  flex-basis: 37px;
+  border-radius: 9px;
+}
+
+.study-focus-copy h2 {
+  font-size: 15px;
+}
+
+.study-focus-copy p {
+  font-size: 10px;
+}
+
+.study-focus-tags {
+  margin-top: 9px;
+}
+
+.study-primary-button,
+.study-composer .composer-send {
+  border-radius: 7px;
+  background: #8850da;
+}
+
+.study-primary-button {
+  min-height: 35px;
+  padding: 0 12px;
+  font-size: 9px;
+}
+
+.study-primary-button:hover,
+.study-composer .composer-send:hover:not(:disabled) {
+  background: #9a65e9;
+}
+
+.study-dashboard-grid {
+  gap: 14px;
+}
+
+.study-primary-column,
+.study-secondary-column {
+  gap: 14px;
+}
+
+.study-panel,
+.study-side-card,
+.study-tool-card {
+  border-color: #2b2b32;
+  border-radius: 9px;
+  background: #121215;
+  box-shadow: none;
+}
+
+.study-tutor-panel {
+  padding: 16px;
+}
+
+.study-section-heading h2 {
+  font-size: 14px;
+}
+
+.study-composer {
+  margin-top: 13px;
+}
+
+.study-composer .file-composer {
+  min-height: 46px;
+  border-color: #34343b;
+  border-radius: 8px;
+  background: #0e0e11;
+}
+
+.study-tools-grid {
+  gap: 8px;
+}
+
+.study-tool-card {
+  min-height: 148px;
+  padding: 12px;
+}
+
+.study-tool-card:hover {
+  transform: translateY(-1px);
+  border-color: #514260;
+  background: #17151b;
+}
+
+.study-tool-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.study-tool-card h3 {
+  margin-top: 11px;
+  font-size: 10px;
+}
+
+.study-rhythm-card {
+  min-height: 190px;
+  background: #151318;
+}
+
+.study-subview {
+  gap: 16px;
+  padding-top: 26px;
+}
+
+.study-subview-heading h1 {
+  font-size: 26px;
+}
+
+@media (max-width: 900px) {
+  .study-sidebar {
+    width: 205px;
+  }
+
+  .study-main {
+    margin-left: 205px;
+  }
+}
+
+@media (max-width: 800px) {
+  .study-sidebar {
+    width: min(86vw, 300px);
+    padding: calc(20px + env(safe-area-inset-top))
+      15px
+      calc(18px + env(safe-area-inset-bottom))
+      calc(15px + env(safe-area-inset-left));
+  }
+
+  .study-main {
+    margin-left: 0;
+  }
+
+  .study-topbar {
+    min-height: calc(52px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top)
+      calc(17px + env(safe-area-inset-right))
+      0
+      calc(17px + env(safe-area-inset-left));
+  }
+
+  .study-content {
+    padding: 20px
+      calc(16px + env(safe-area-inset-right))
+      calc(12px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+  }
+
+  .study-content.is-overview {
+    min-height: calc(100vh - 52px);
+    min-height: calc(100dvh - 52px - env(safe-area-inset-top));
+  }
+
+  .study-welcome {
+    min-height: 94px;
+  }
+
+  .study-focus-banner {
+    min-height: 0;
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+
+  .study-focus-copy {
+    flex-basis: calc(100% - 52px);
+  }
+
+  .study-primary-button {
+    margin-left: 51px;
+  }
+}
+
+@media (max-width: 520px) {
+  .study-welcome-mark {
+    display: none;
+  }
+
+  .study-focus-banner {
+    align-items: flex-start;
+  }
+
+  .study-focus-symbol {
+    align-self: auto;
+    margin: 0;
+  }
+}
+
+.study-shell.has-user-theme {
+  --study-bg: var(--theme-bg);
+  --study-panel: var(--theme-surface);
+  --study-panel-raised: var(--theme-surface-raised);
+  --study-line: var(--theme-border);
+  --study-purple: var(--theme-accent);
+  --study-purple-strong: var(--theme-accent);
+  --study-text: #f4f2f8;
+  --study-muted: #a7a4b2;
+  --study-subtle: #83808f;
+  background:
+    radial-gradient(ellipse at 74% 0%, color-mix(in srgb, var(--theme-accent), transparent 88%) 0, transparent 35rem),
+    var(--theme-bg);
+}
+
+.study-shell.has-user-theme .study-sidebar {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .study-topbar {
+  border-color: var(--theme-border);
+  background: color-mix(in srgb, var(--theme-bg), transparent 8%);
+}
+
+.study-shell.has-user-theme .study-sidebar-backdrop {
+  background: color-mix(in srgb, var(--theme-bg), transparent 32%);
+}
+
+.study-shell.has-user-theme .study-brand-accent,
+.study-shell.has-user-theme .study-overline,
+.study-shell.has-user-theme .study-section-kicker,
+.study-shell.has-user-theme .study-focus-label,
+.study-shell.has-user-theme .study-tip-label,
+.study-shell.has-user-theme .study-footer span:first-child,
+.study-shell.has-user-theme .study-focus-tags svg,
+.study-shell.has-user-theme .study-tool-icon,
+.study-shell.has-user-theme .composer-attach {
+  color: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .study-brand-mark {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 60%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 88%);
+}
+
+.study-shell.has-user-theme .study-new-session,
+.study-shell.has-user-theme .study-primary-button,
+.study-shell.has-user-theme .study-composer .composer-send {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 18%);
+  color: #101014;
+  background: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .study-new-session:hover,
+.study-shell.has-user-theme .study-primary-button:hover,
+.study-shell.has-user-theme .study-composer .composer-send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-accent), white 15%);
+}
+
+.study-shell.has-user-theme .study-nav-link.is-active {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 70%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 88%);
+}
+
+.study-shell.has-user-theme .study-nav-link:hover,
+.study-shell.has-user-theme .study-nav-link:focus-visible {
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 92%);
+}
+
+.study-shell.has-user-theme .study-focus-symbol {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 68%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 88%);
+}
+
+.study-shell.has-user-theme .study-orbit-center {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 45%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 76%);
+}
+
+.study-shell.has-user-theme .study-focus-banner,
+.study-shell.has-user-theme .study-panel,
+.study-shell.has-user-theme .study-side-card,
+.study-shell.has-user-theme .study-tool-card,
+.study-shell.has-user-theme .study-empty-chat,
+.study-shell.has-user-theme .study-sidebar-note,
+.study-shell.has-user-theme .study-chat-history-item,
+.study-shell.has-user-theme .study-chat-history-item.is-active,
+.study-shell.has-user-theme .study-recent-count,
+.study-shell.has-user-theme .study-avatar,
+.study-shell.has-user-theme .study-top-avatar,
+.study-shell.has-user-theme .study-sidebar-toggle,
+.study-shell.has-user-theme .study-mobile-signout,
+.study-shell.has-user-theme .study-composer .file-composer,
+.study-shell.has-user-theme .study-composer .chat-message.assistant {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .study-focus-banner,
+.study-shell.has-user-theme .study-panel,
+.study-shell.has-user-theme .study-side-card,
+.study-shell.has-user-theme .study-tool-card,
+.study-shell.has-user-theme .study-empty-chat {
+  box-shadow: 0 12px 35px rgba(0, 0, 0, .18);
+}
+
+.study-shell.has-user-theme .study-tool-card:hover,
+.study-shell.has-user-theme .study-chat-history-item:hover,
+.study-shell.has-user-theme .study-sidebar-toggle:hover,
+.study-shell.has-user-theme .study-sidebar-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--theme-accent), var(--theme-border) 48%);
+  background: var(--theme-surface-raised);
+}
+
+.study-shell.has-user-theme .study-account-copy strong,
+.study-shell.has-user-theme .study-recent-heading h2,
+.study-shell.has-user-theme .study-empty-chat h3,
+.study-shell.has-user-theme .study-focus-copy h2,
+.study-shell.has-user-theme .study-section-heading h2,
+.study-shell.has-user-theme .study-tool-card h3,
+.study-shell.has-user-theme .study-subview-heading h1,
+.study-shell.has-user-theme .study-breadcrumb strong {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .study-account-copy small,
+.study-shell.has-user-theme .study-subview-heading p,
+.study-shell.has-user-theme .study-focus-copy p,
+.study-shell.has-user-theme .study-section-heading p,
+.study-shell.has-user-theme .study-tool-card p,
+.study-shell.has-user-theme .study-date,
+.study-shell.has-user-theme .study-breadcrumb,
+.study-shell.has-user-theme .study-empty-chat p {
+  color: var(--study-muted);
+}
+
+.study-shell.has-user-theme .composer-attach:hover,
+.study-shell.has-user-theme .composer-attach.is-active {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 68%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 90%);
+}
+
+.study-shell.has-user-theme .study-composer .composer-input,
+.study-shell.has-user-theme .study-quiz-topic input,
+.study-shell.has-user-theme .study-quiz-settings select,
+.study-shell.has-user-theme .admin-content-form input,
+.study-shell.has-user-theme .admin-content-form textarea,
+.study-shell.has-user-theme .admin-content-form select {
+  border-color: var(--theme-border);
+  color: #f4f2f8;
+  background-color: var(--theme-bg);
+}
+
+.study-shell.has-user-theme .study-composer .composer-input:focus,
+.study-shell.has-user-theme .study-quiz-topic input:focus,
+.study-shell.has-user-theme .study-quiz-settings select:focus,
+.study-shell.has-user-theme input:focus-visible,
+.study-shell.has-user-theme textarea:focus-visible,
+.study-shell.has-user-theme select:focus-visible,
+.study-shell.has-user-theme button:focus-visible {
+  outline-color: var(--theme-accent);
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent), transparent 82%);
+}
+
+.study-shell.has-user-theme .study-quiz-builder,
+.study-shell.has-user-theme .study-quiz-player,
+.study-shell.has-user-theme .study-quiz-results,
+.study-shell.has-user-theme .daily-usage-card,
+.study-shell.has-user-theme .daily-usage-skeleton,
+.study-shell.has-user-theme .theme-choice {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .study-quiz-builder h2,
+.study-shell.has-user-theme .study-quiz-player h2,
+.study-shell.has-user-theme .study-quiz-results h2,
+.study-shell.has-user-theme .daily-usage-heading h2,
+.study-shell.has-user-theme .daily-usage-card-heading h3,
+.study-shell.has-user-theme .daily-usage-numbers > strong {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .study-quiz-builder p,
+.study-shell.has-user-theme .study-quiz-player p,
+.study-shell.has-user-theme .study-quiz-results p,
+.study-shell.has-user-theme .daily-usage-card-heading p,
+.study-shell.has-user-theme .daily-usage-remaining {
+  color: var(--study-muted);
+}
+
+.study-shell.has-user-theme .study-quiz-progress span,
+.study-shell.has-user-theme .daily-usage-progress span {
+  background: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .study-quiz-error,
+.study-shell.has-user-theme .daily-usage-error p,
+.study-shell.has-user-theme .daily-usage-exhausted {
+  color: #ffaaaa;
+}
+
+.study-shell.has-user-theme .daily-usage-icon {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 72%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 91%);
+}
+
+.study-shell.has-user-theme .plans-page {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .plans-heading h1,
+.study-shell.has-user-theme .plan-card h2,
+.study-shell.has-user-theme .plan-price strong {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .plans-heading p,
+.study-shell.has-user-theme .plan-description,
+.study-shell.has-user-theme .plan-price span,
+.study-shell.has-user-theme .plan-features li,
+.study-shell.has-user-theme .plans-note {
+  color: var(--study-muted);
+}
+
+.study-shell.has-user-theme .plans-eyebrow,
+.study-shell.has-user-theme .plan-features li span {
+  color: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .plan-card,
+.study-shell.has-user-theme .plan-featured {
+  border-color: var(--theme-border);
+  background: linear-gradient(155deg, var(--theme-surface-raised), var(--theme-surface) 58%);
+}
+
+.study-shell.has-user-theme .plan-featured {
+  border-color: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .plan-badge {
+  color: #101014;
+  background: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .plan-price {
+  border-color: var(--theme-border);
+}
+
+.study-shell.has-user-theme .plan-features li span {
+  background: color-mix(in srgb, var(--theme-accent), transparent 86%);
+}
+
+.study-shell.has-user-theme .plan-button {
+  border-color: var(--theme-border);
+  color: var(--study-muted);
+  background: var(--theme-surface-raised);
+}
+
+.study-shell.has-user-theme .plan-button-current {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 65%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), transparent 89%);
+}
+
+.study-shell.has-user-theme .file-menu-wrap {
+  --menu-bg: var(--theme-surface);
+  --menu-border: var(--theme-border);
+  --menu-muted: var(--study-muted);
+  --menu-text: #f4f2f8;
+  --menu-accent: var(--theme-accent);
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .study-composer .chat-message.user {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 70%);
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 89%);
+}
+
+.study-shell.has-user-theme .theme-access-notice,
+.study-shell.has-user-theme .theme-choice,
+.study-shell.has-user-theme .theme-reset-button {
+  border-color: var(--theme-border);
+  background-color: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .theme-settings-page h1,
+.study-shell.has-user-theme .theme-settings-page h2,
+.study-shell.has-user-theme .theme-choice-title h3 {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .theme-access-notice {
+  border-color: color-mix(in srgb, var(--theme-accent), var(--theme-border) 65%);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--theme-accent), transparent 91%), color-mix(in srgb, var(--theme-accent), transparent 97%));
+}
+
+.study-shell.has-user-theme .theme-lock-mark,
+.study-shell.has-user-theme .theme-plans-link {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 60%);
+  color: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .theme-lock-mark {
+  background: color-mix(in srgb, var(--theme-accent), transparent 87%);
+}
+
+.study-shell.has-user-theme .theme-reset-button:hover:not(:disabled) {
+  border-color: var(--theme-accent);
+  color: #f4f2f8;
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 90%);
+}
+
+.study-shell.has-user-theme .theme-settings-page p {
+  color: var(--study-muted);
+}
+
+.study-shell.has-user-theme .admin-stat-card,
+.study-shell.has-user-theme .admin-section,
+.study-shell.has-user-theme .admin-user-row,
+.study-shell.has-user-theme .admin-activity-row,
+.study-shell.has-user-theme .admin-toggle-row,
+.study-shell.has-user-theme .admin-count,
+.study-shell.has-user-theme .admin-plan-select,
+.study-shell.has-user-theme .admin-user-action {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+.study-shell.has-user-theme .admin-section-heading h2,
+.study-shell.has-user-theme .admin-stat-card strong,
+.study-shell.has-user-theme .admin-user-copy strong,
+.study-shell.has-user-theme .admin-activity-copy strong {
+  color: #f4f2f8;
+}
+
+.study-shell.has-user-theme .admin-section-heading p,
+.study-shell.has-user-theme .admin-stat-card span,
+.study-shell.has-user-theme .admin-user-copy small,
+.study-shell.has-user-theme .admin-activity-copy small,
+.study-shell.has-user-theme .admin-activity-row time,
+.study-shell.has-user-theme .admin-plan-field {
+  color: var(--study-muted);
+}
+
+.study-shell.has-user-theme .admin-activity-marker,
+.study-shell.has-user-theme .admin-content-form input,
+.study-shell.has-user-theme .admin-content-form textarea,
+.study-shell.has-user-theme .admin-content-form select,
+.study-shell.has-user-theme .admin-account-search input,
+.study-shell.has-user-theme .admin-plan-select,
+.study-shell.has-user-theme .admin-toggle-row input {
+  accent-color: var(--theme-accent);
+}
+
+.study-shell.has-user-theme .admin-user-avatar {
+  border-color: color-mix(in srgb, var(--theme-accent), transparent 62%);
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 87%);
+}
+
+.study-shell.has-user-theme button:focus-visible,
+:root[data-study-theme] .file-action-menu button:focus-visible,
+:root[data-study-theme] .file-action-menu input:focus-visible {
+  outline-color: var(--theme-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent), transparent 80%);
+}
+
+:root[data-study-theme] .file-action-menu {
+  --menu-bg: var(--theme-surface);
+  --menu-border: var(--theme-border);
+  --menu-muted: #a7a4b2;
+  --menu-text: #f4f2f8;
+  --menu-accent: var(--theme-accent);
+}
+
+:root[data-study-theme] .file-action-menu .file-menu-status,
+:root[data-study-theme] .file-action-menu .primary-option,
+:root[data-study-theme] .file-action-menu .option-icon,
+:root[data-study-theme] .file-action-menu input,
+:root[data-study-theme] .file-action-menu textarea,
+:root[data-study-theme] .file-action-menu select {
+  border-color: var(--theme-border);
+  color: #f4f2f8;
+  background-color: var(--theme-surface-raised);
+}
+
+:root[data-study-theme] .file-action-menu .primary-option:hover,
+:root[data-study-theme] .file-action-menu .file-action-option:hover {
+  border-color: color-mix(in srgb, var(--theme-accent), var(--theme-border) 55%);
+  background: color-mix(in srgb, var(--theme-accent), var(--theme-surface) 91%);
+}
+
+:root[data-study-theme] .file-action-menu .status-dot,
+:root[data-study-theme] .file-action-menu .composer-send {
+  background: var(--theme-accent);
 }

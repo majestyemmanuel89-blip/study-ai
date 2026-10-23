@@ -5,8 +5,13 @@ import FileActionMenu from './FileActionMenu'
 import Quiz from './Quiz'
 import AuthScreen from './AuthScreen'
 import AdminPanel from './AdminPanel'
+import Plans from './Plans'
+import ThemeSettings from './ThemeSettings'
+import DailyUsage from './DailyUsage'
+import { DEFAULT_THEME_ID, getDarkTheme } from './themes'
 
 const CHAT_HISTORY_STORAGE_KEY = 'studyai-chat-history'
+const DEFAULT_THEME = { id: DEFAULT_THEME_ID }
 const DEFAULT_CONTENT = {
   welcomeHeading: 'Make space for better learning.',
   welcomeCopy: 'Understand the hard things, one focused session at a time.',
@@ -18,6 +23,8 @@ const navigation = [
   { id: 'overview', label: 'Overview', icon: 'grid' },
   { id: 'library', label: 'My library', icon: 'book' },
   { id: 'quizzes', label: 'Practice quizzes', icon: 'check' },
+  { id: 'plans', label: 'Plans & Pricing', icon: 'sparkle' },
+  { id: 'appearance', label: 'Appearance', icon: 'palette' },
 ]
 
 function isValidChat(chat) {
@@ -90,10 +97,20 @@ function getAuthErrorFromUrl() {
   return messages[error] || 'Sign-in could not be completed. Please try again.'
 }
 
+function getBillingStatusFromUrl() {
+  const url = new URL(window.location.href)
+  const status = url.searchParams.get('billing')
+  if (!['success', 'failed'].includes(status)) return ''
+  url.searchParams.delete('billing')
+  window.history.replaceState({}, '', url)
+  return status
+}
+
 function Icon({ name, size = 18 }) {
   const icons = {
     arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
     book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16M8 7h8M8 11h7" /></>,
+    palette: <><path d="M12 3a9 9 0 1 0 0 18h1.2a2 2 0 0 0 1.5-3.3 1.8 1.8 0 0 1 1.3-3h1.1A3.9 3.9 0 0 0 21 10.8C21 6.5 17 3 12 3Z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7.5" r="1" /><circle cx="15" cy="8" r="1" /></>,
     check: <><path d="M8 5h12M8 12h12M8 19h12" /><path d="m3 5 1 1 2-2M3 12l1 1 2-2M3 19l1 1 2-2" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     grid: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
@@ -101,6 +118,7 @@ function Icon({ name, size = 18 }) {
     sidebar: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></>,
     sparkle: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" /></>,
     target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
   }
 
   return (
@@ -121,7 +139,8 @@ function Icon({ name, size = 18 }) {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState('overview')
+  const [billingStatus] = useState(getBillingStatusFromUrl)
+  const [currentView, setCurrentView] = useState(() => billingStatus ? 'plans' : 'overview')
   const [chatKey, setChatKey] = useState(0)
   const [historyState, setHistoryState] = useState(loadChatHistory)
   const [activeChatId, setActiveChatId] = useState(null)
@@ -131,7 +150,10 @@ function App() {
   const [googleConfigured, setGoogleConfigured] = useState(false)
   const [content, setContent] = useState(DEFAULT_CONTENT)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 650px)').matches)
+  const [theme, setTheme] = useState(DEFAULT_THEME)
+  const [usageState, setUsageState] = useState({ loading: true, usage: null, error: '' })
+  const [usageRefreshVersion, setUsageRefreshVersion] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 800px)').matches)
   const { chats, error: historyError } = historyState
   const date = new Intl.DateTimeFormat('en', {
     weekday: 'long',
@@ -139,9 +161,79 @@ function App() {
     month: 'long',
   }).format(new Date())
   const currentLabel = currentView.startsWith('admin')
-    ? currentView === 'admin-activities' ? 'Activities' : 'Admin panel'
+    ? currentView === 'admin-activities' ? 'Activities' : currentView === 'admin-accounts' ? 'Accounts' : 'Admin panel'
     : navigation.find((item) => item.id === currentView)?.label ?? 'Overview'
   const activeChat = chats.find(chat => chat.id === activeChatId)
+  const refreshUsage = () => setUsageRefreshVersion(version => version + 1)
+
+  useEffect(() => {
+    if (authState.status !== 'signed-in') {
+      setUsageState({ loading: false, usage: null, error: '' })
+      return undefined
+    }
+
+    const controller = new AbortController()
+    let resetTimer
+    let resetAt = 0
+
+    async function loadUsage() {
+      setUsageState(current => ({ ...current, loading: true, error: '' }))
+      try {
+        const response = await fetch('/api/usage', { signal: controller.signal })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          throw new Error(data.error || `Could not load daily usage (${response.status}).`)
+        }
+        if (
+          !data.usage
+          || !data.usage.tutor
+          || !data.usage.quiz
+          || !Number.isFinite(Date.parse(data.usage.resetsAt))
+        ) {
+          throw new Error('The server returned invalid daily usage data.')
+        }
+
+        resetAt = Date.parse(data.usage.resetsAt)
+        setUsageState({ loading: false, usage: data.usage, error: '' })
+        window.clearTimeout(resetTimer)
+        resetTimer = window.setTimeout(
+          loadUsage,
+          Math.max(1000, resetAt - Date.now() + 250),
+        )
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Unable to load daily AI usage:', error)
+          setUsageState(current => ({
+            ...current,
+            loading: false,
+            error: error.message || 'Daily usage could not be loaded.',
+          }))
+        }
+      }
+    }
+
+    function refreshAfterUtcReset() {
+      if (document.visibilityState === 'visible' && resetAt && Date.now() >= resetAt) {
+        window.clearTimeout(resetTimer)
+        loadUsage()
+      }
+    }
+
+    loadUsage()
+    document.addEventListener('visibilitychange', refreshAfterUtcReset)
+    return () => {
+      controller.abort()
+      window.clearTimeout(resetTimer)
+      document.removeEventListener('visibilitychange', refreshAfterUtcReset)
+    }
+  }, [authState.status, usageRefreshVersion])
+
+  useEffect(() => {
+    const mobileLayout = window.matchMedia('(max-width: 800px)')
+    const syncSidebar = event => setSidebarOpen(!event.matches)
+    mobileLayout.addEventListener('change', syncSidebar)
+    return () => mobileLayout.removeEventListener('change', syncSidebar)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -156,8 +248,10 @@ function App() {
         setContent(sessionData.content || DEFAULT_CONTENT)
         setMaintenanceMode(Boolean(sessionData.settings?.maintenanceMode))
         setGoogleConfigured(Boolean(sessionData.googleConfigured))
+        setTheme(sessionData.theme || DEFAULT_THEME)
         if (!sessionData.user) {
           setAuthState({ status: 'anonymous', user: null, csrfToken: null })
+          setTheme(DEFAULT_THEME)
           return
         }
 
@@ -228,6 +322,7 @@ function App() {
     }
     const signedIn = { status: 'signed-in', user: data.user, csrfToken: data.csrfToken }
     setAuthState(signedIn)
+    setTheme(data.theme || DEFAULT_THEME)
     setAuthError('')
     setCurrentView(data.user.role === 'admin' ? 'admin' : 'overview')
     try {
@@ -311,7 +406,7 @@ function App() {
 
   function navigateTo(view) {
     setCurrentView(view)
-    if (window.matchMedia('(max-width: 650px)').matches) setSidebarOpen(false)
+    if (window.matchMedia('(max-width: 800px)').matches) setSidebarOpen(false)
   }
 
   function startNewChat() {
@@ -335,6 +430,8 @@ function App() {
       initialMessages={activeChat?.messages || []}
       onChatStart={() => setChatStarted(true)}
       onMessagesChange={saveConversation}
+      onUsageChange={refreshUsage}
+      tutorRemaining={usageState.usage?.tutor.remaining}
       onFilesSelected={(files) => {
         console.log('Selected documents:', files)
       }}
@@ -343,6 +440,47 @@ function App() {
       }}
     />
   )
+  const hasCustomTheme = (authState.user?.role === 'admin' || ['premium', 'pro'].includes(authState.user?.plan))
+    && theme
+    && typeof theme.id === 'string'
+    && getDarkTheme(theme.id).id === theme.id
+  const activeTheme = getDarkTheme(hasCustomTheme ? theme.id : DEFAULT_THEME_ID)
+  const studyShellStyle = hasCustomTheme
+    ? {
+      '--theme-bg': activeTheme.background,
+      '--theme-surface': activeTheme.surface,
+      '--theme-surface-raised': activeTheme.raised,
+      '--theme-border': activeTheme.border,
+      '--theme-accent': activeTheme.accent,
+    }
+    : undefined
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (!hasCustomTheme) {
+      delete root.dataset.studyTheme
+      for (const property of ['--theme-bg', '--theme-surface', '--theme-surface-raised', '--theme-border', '--theme-accent']) {
+        root.style.removeProperty(property)
+      }
+      return undefined
+    }
+
+    root.dataset.studyTheme = activeTheme.id
+    root.style.setProperty('--theme-bg', activeTheme.background)
+    root.style.setProperty('--theme-surface', activeTheme.surface)
+    root.style.setProperty('--theme-surface-raised', activeTheme.raised)
+    root.style.setProperty('--theme-border', activeTheme.border)
+    root.style.setProperty('--theme-accent', activeTheme.accent)
+
+    return () => {
+      if (root.dataset.studyTheme === activeTheme.id) {
+        delete root.dataset.studyTheme
+        for (const property of ['--theme-bg', '--theme-surface', '--theme-surface-raised', '--theme-border', '--theme-accent']) {
+          root.style.removeProperty(property)
+        }
+      }
+    }
+  }, [activeTheme, hasCustomTheme])
 
   if (authState.status === 'loading') {
     return <main className="auth-shell"><p role="status">Checking your StudyAI account…</p></main>
@@ -358,7 +496,11 @@ function App() {
   }
 
   return (
-    <div className={`study-shell${sidebarOpen ? ' is-sidebar-open' : ''}`}>
+    <div
+      className={`study-shell${sidebarOpen ? ' is-sidebar-open' : ''}${hasCustomTheme ? ' has-user-theme' : ''}`}
+      data-theme={hasCustomTheme ? activeTheme.id : undefined}
+      style={studyShellStyle}
+    >
       {sidebarOpen && (
         <button
           className="study-sidebar-backdrop"
@@ -416,6 +558,14 @@ function App() {
               >
                 <Icon name="clock" size={17} />
                 <span>Activities</span>
+              </button>
+              <button
+                className={`study-nav-link${currentView === 'admin-accounts' ? ' is-active' : ''}`}
+                onClick={() => setCurrentView('admin-accounts')}
+                aria-current={currentView === 'admin-accounts' ? 'page' : undefined}
+              >
+                <Icon name="users" size={17} />
+                <span>Accounts</span>
               </button>
             </>
           )}
@@ -489,6 +639,7 @@ function App() {
           )}
           {currentView === 'overview' && (
             <>
+              <DailyUsage state={usageState} onRetry={refreshUsage} />
               {!chatStarted && <div className="study-overview-focus">
                 <section className="study-welcome">
                   <div>
@@ -547,15 +698,42 @@ function App() {
                 <h1>Practice quizzes</h1>
                 <p>Test your understanding with a personalized quiz on any topic.</p>
               </div>
-              <Quiz csrfToken={authState.csrfToken} />
+              <Quiz
+                csrfToken={authState.csrfToken}
+                usageRemaining={usageState.usage?.quiz.remaining}
+                onUsageChange={refreshUsage}
+              />
             </section>
           )}
 
-          {(currentView === 'admin' || currentView === 'admin-activities') && authState.user.role === 'admin' && (
+          {currentView === 'plans' && (
+            <Plans
+              user={authState.user}
+              csrfToken={authState.csrfToken}
+              billingStatus={billingStatus}
+            />
+          )}
+
+          {currentView === 'appearance' && (
+            <ThemeSettings
+              user={authState.user}
+              theme={theme}
+              csrfToken={authState.csrfToken}
+              onThemeChange={setTheme}
+              onNavigate={navigateTo}
+            />
+          )}
+
+          {(currentView === 'admin' || currentView === 'admin-activities' || currentView === 'admin-accounts') && authState.user.role === 'admin' && (
             <AdminPanel
               csrfToken={authState.csrfToken}
               onContentSaved={setContent}
-              view={currentView === 'admin-activities' ? 'activities' : 'dashboard'}
+              onUserPlanChange={(userId, plan) => {
+                setAuthState(current => current.user?.id === userId
+                  ? { ...current, user: { ...current.user, plan } }
+                  : current)
+              }}
+              view={currentView === 'admin-activities' ? 'activities' : currentView === 'admin-accounts' ? 'accounts' : 'dashboard'}
             />
           )}
 

@@ -21,8 +21,10 @@ const activityLabels = {
   admin_settings_updated: 'Updated app settings',
   google_login: 'Signed in with Google',
   login: 'Signed in',
+  plan_purchase: 'Purchased a paid plan',
   quiz_generation: 'Generated a practice quiz',
   tutor_request: 'Sent a question to the AI tutor',
+  admin_user_plan_updated: 'Updated an account plan',
 }
 
 async function readResponse(response) {
@@ -31,10 +33,11 @@ async function readResponse(response) {
   return data
 }
 
-export default function AdminPanel({ csrfToken, onContentSaved, view = 'dashboard' }) {
+export default function AdminPanel({ csrfToken, onContentSaved, onUserPlanChange, view = 'dashboard' }) {
   const [analytics, setAnalytics] = useState(null)
   const [activities, setActivities] = useState([])
   const [users, setUsers] = useState([])
+  const [accountSearch, setAccountSearch] = useState('')
   const [content, setContent] = useState(initialContent)
   const [settings, setSettings] = useState(initialSettings)
   const [loading, setLoading] = useState(true)
@@ -160,6 +163,30 @@ export default function AdminPanel({ csrfToken, onContentSaved, view = 'dashboar
     }
   }
 
+  async function updateUserPlan(user, plan) {
+    setError('')
+    setNotice('')
+    try {
+      await readResponse(await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/plan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ plan }),
+      }))
+      setUsers(current => current.map(entry => entry.id === user.id ? { ...entry, plan } : entry))
+      onUserPlanChange?.(user.id, plan)
+      setNotice(`${user.email} is now on the ${plan === 'free' ? 'Free' : plan} plan.`)
+    } catch (updateError) {
+      setError(updateError.message || 'Could not update this account plan.')
+    }
+  }
+
+  const filteredUsers = users.filter(user => {
+    const search = accountSearch.trim().toLowerCase()
+    return !search
+      || user.displayName.toLowerCase().includes(search)
+      || user.email.toLowerCase().includes(search)
+  })
+
   if (loading) {
     return <section className="admin-loading" role="status">Loading admin workspace…</section>
   }
@@ -168,8 +195,12 @@ export default function AdminPanel({ csrfToken, onContentSaved, view = 'dashboar
     <section className="study-subview admin-workspace">
       <div className="study-subview-heading">
         <span className="study-section-kicker">RESTRICTED WORKSPACE</span>
-        <h1>{view === 'activities' ? 'Activities' : 'Admin panel'}</h1>
-        <p>{view === 'activities' ? 'Recent sign-ins, learning activity, and administrator changes.' : 'Manage StudyAI accounts, usage, and the student experience.'}</p>
+        <h1>{view === 'activities' ? 'Activities' : view === 'accounts' ? 'Accounts' : 'Admin panel'}</h1>
+        <p>{view === 'activities'
+          ? 'Recent sign-ins, learning activity, and administrator changes.'
+          : view === 'accounts'
+            ? 'View and manage every account registered in StudyAI.'
+            : 'Manage StudyAI accounts, usage, and the student experience.'}</p>
       </div>
 
       {error && <p className="admin-alert is-error" role="alert">{error}</p>}
@@ -198,6 +229,72 @@ export default function AdminPanel({ csrfToken, onContentSaved, view = 'dashboar
               </article>
             ))}
             {activities.length === 0 && <p className="admin-empty">No activity has been recorded yet.</p>}
+          </div>
+        </section>
+      ) : view === 'accounts' ? (
+        <section className="admin-section" aria-label="Registered accounts">
+          <div className="admin-section-heading">
+            <div><h2>All registered accounts</h2><p>Search accounts, manage access, and assign Free, Premium, or Pro plans. Plan assignments do not process payments.</p></div>
+            <span className="admin-count">{filteredUsers.length} of {users.length} accounts</span>
+          </div>
+          <label className="admin-account-search">
+            <span>Search accounts</span>
+            <input
+              type="search"
+              value={accountSearch}
+              onChange={event => setAccountSearch(event.target.value)}
+              placeholder="Search by name or email"
+            />
+          </label>
+          <div className="admin-users">
+            {filteredUsers.map(user => (
+              <article className="admin-user-row admin-account-row" key={user.id}>
+                <span className="admin-user-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span>
+                <span className="admin-user-copy">
+                  <strong>{user.displayName}</strong>
+                  <small>{user.email} · {user.role}</small>
+                </span>
+                <span className="admin-account-dates">
+                  <small>Registered</small>
+                  <time dateTime={new Date(user.createdAt).toISOString()}>
+                    {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(user.createdAt)}
+                  </time>
+                </span>
+                <span className="admin-account-dates">
+                  <small>Last sign-in</small>
+                  <span>{user.lastLoginAt
+                    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(user.lastLoginAt)
+                    : 'Never'}</span>
+                </span>
+                <span className={`admin-user-status${user.isActive ? ' is-active' : ''}`}>
+                  {user.isActive ? 'Active' : 'Disabled'}
+                </span>
+                <label className="admin-plan-field">
+                  <span className="visually-hidden">Plan for {user.email}</span>
+                  <select
+                    className="admin-plan-select"
+                    value={user.plan || 'free'}
+                    onChange={event => updateUserPlan(user, event.target.value)}
+                    aria-label={`Plan for ${user.email}`}
+                  >
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </label>
+                <button
+                  className="admin-user-action"
+                  onClick={() => toggleUser(user)}
+                  disabled={user.role === 'admin' && user.isActive}
+                  title={user.role === 'admin' && user.isActive ? 'The active administrator cannot be disabled here.' : undefined}
+                >
+                  {user.isActive ? 'Disable' : 'Enable'}
+                </button>
+              </article>
+            ))}
+            {filteredUsers.length === 0 && (
+              <p className="admin-empty">{users.length ? 'No accounts match your search.' : 'No accounts found.'}</p>
+            )}
           </div>
         </section>
       ) : (

@@ -1,0 +1,241 @@
+.plans-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 34px 24px 48px;
+  color: #24213a;
+}
+
+.plans-heading {
+  text-align: center;
+  margin: 12px auto 38px;
+}
+
+.plans-eyebrow {
+  display: inline-block;
+  color: #8060e9;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.plans-heading h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.15;
+  letter-spacing: -1.8px;
+}
+
+.plans-heading p {
+  margin: 14px 0 0;
+  color: #827c96;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.plans-feedback {
+  max-width: 760px;
+  margin: 0 auto 18px;
+  padding: 11px 14px;
+  border: 1px solid #3c4352;
+  border-radius: 8px;
+  color: #b9c4d5;
+  background: #171c25;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.plans-feedback.is-success {
+  border-color: #315b4a;
+  color: #a8e5c4;
+  background: #14231d;
+}
+
+.plans-feedback.is-error {
+  border-color: #633d46;
+  color: #f0b2bd;
+  background: #29191e;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 30px 24px 24px;
+  background: #fff;
+  border: 1px solid #eae6f4;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(54, 39, 96, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 36px rgba(54, 39, 96, 0.09);
+}
+
+.plan-featured {
+  border: 2px solid #8060e9;
+  background: linear-gradient(180deg, #f8f5ff 0%, #fff 38%);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -13px;
+  right: 20px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #8060e9;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.plan-card h2 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+
+.plan-description {
+  min-height: 44px;
+  margin: 10px 0 22px;
+  color: #827c96;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.plan-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #eeeaf6;
+}
+
+.plan-price strong {
+  font-size: clamp(25px, 2.4vw, 34px);
+  letter-spacing: -1.3px;
+}
+
+.plan-price span {
+  color: #928ba6;
+  font-size: 11px;
+}
+
+.plan-features {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  padding: 24px 0;
+  margin: 0;
+  flex: 1;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #5e5872;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.plan-features li span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #eee8ff;
+  color: #7654df;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.plan-button {
+  width: 100%;
+  min-height: 45px;
+  border: 1px solid #ded7f1;
+  border-radius: 11px;
+  background: #f6f3fc;
+  color: #7c7392;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.plan-button:disabled {
+  cursor: default;
+}
+
+.plan-button-current {
+  background: #eee9fc;
+  border-color: #e1d8fa;
+  color: #7152d6;
+  cursor: default;
+  opacity: 1;
+}
+
+.plans-note {
+  max-width: 650px;
+  margin: 28px auto 0;
+  color: #928ba6;
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin: 0 auto;
+    gap: 24px;
+  }
+
+  .plan-card {
+    padding: 28px 24px 24px;
+  }
+
+  .plan-description {
+    min-height: auto;
+  }
+
+  .plan-price strong {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .plans-page {
+    padding: 24px 14px 36px;
+  }
+
+  .plans-heading {
+    margin-bottom: 32px;
+  }
+
+  .plans-heading h1 {
+    letter-spacing: -1px;
+  }
+
+  .plan-card {
+    padding: 25px 19px 20px;
+  }
+}
